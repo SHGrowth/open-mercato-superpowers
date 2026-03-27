@@ -48,6 +48,41 @@ Claude Code plugin for Open Mercato developers. 10 skills covering the full OM d
 om-mat --> om-piotr --> om-krug --> om-spec-writing --> om-pre-implement-spec --> om-implement-spec --> om-code-review
 ~~~
 
+## How superpowers + OM skills work together
+
+Superpowers provides the **workflow engine** (brainstorming, planning, TDD, debugging). OM skills provide **domain knowledge** (what OM modules exist, how to review OM code, how to write OM specs). They interleave:
+
+~~~
+1. User: "Build a feature for OM"
+   │
+2. superpowers:brainstorming          ← superpowers drives the design process
+   │  └─ invokes om-mat               ← OM skill: defines spec with domain model
+   │       └─ dispatches Vernon        ← DDD challenger (subagent within om-mat)
+   │       └─ invokes om-piotr         ← OM skill: "does OM already do this?"
+   │       └─ invokes om-krug          ← OM skill: UI architecture review
+   │
+3. superpowers:writing-plans           ← superpowers creates implementation plan
+   │  └─ invokes om-pre-implement-spec ← OM skill: BC impact, risk analysis
+   │  └─ invokes om-spec-writing       ← OM skill: architectural compliance
+   │
+4. superpowers:executing-plans         ← superpowers executes plan step by step
+   │  └─ invokes om-implement-spec     ← OM skill: multi-phase implementation
+   │  └─ superpowers:tdd              ← superpowers: red-green-refactor cycle
+   │       └─ invokes om-integration-tests  ← OM skill: Playwright tests
+   │
+5. superpowers:requesting-code-review  ← superpowers initiates review
+   └─ replaced by om-code-review      ← OM skill: CI/CD gate + full OM checklist
+~~~
+
+**Rule of thumb:** superpowers decides *how* to work. OM skills decide *what* to build and *what to check*.
+
+| Phase | Superpowers skill | OM skill (domain) |
+|-------|------------------|-------------------|
+| Design | `brainstorming` | `om-mat`, `om-piotr`, `om-krug` |
+| Planning | `writing-plans` | `om-spec-writing`, `om-pre-implement-spec` |
+| Implementation | `executing-plans`, `tdd` | `om-implement-spec`, `om-integration-tests`, `om-integration-builder`, `om-backend-ui-design` |
+| Review | `requesting-code-review` | `om-code-review` (replaces generic reviewer) |
+
 ## How it works
 
 The plugin auto-detects OM projects on session start by looking for:
