@@ -1,7 +1,7 @@
 {
-  "name": "om-claude-plugin",
+  "name": "open-mercato-superpowers",
   "version": "1.0.0",
   "description": "Claude Code plugin for Open Mercato developers",
   "license": "MIT",
-  "repository": "https://github.com/SHGrowth/om-claude-plugin"
+  "repository": "https://github.com/SHGrowth/open-mercato-superpowers"
 }

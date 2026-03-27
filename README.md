@@ -1,12 +1,12 @@
-# om-claude-plugin
+# open-mercato-superpowers
 
 Claude Code plugin for Open Mercato developers. 10 skills covering the full OM developer lifecycle: spec writing, platform challenge, UI review, implementation, and code review.
 
 ## Install
 
 ~~~
-/plugin marketplace add SHGrowth/om-claude-plugin
-/plugin install om-claude-plugin@om-claude-plugin
+/plugin marketplace add SHGrowth/open-mercato-superpowers
+/plugin install open-mercato-superpowers@open-mercato-superpowers
 ~~~
 
 ### Prerequisites
