@@ -144,6 +144,29 @@ echo ""
 # Save version info for om-reference
 echo "${COMMIT_SHA}" > "${AGENTS_DIR}/.om-sync-version"
 
+# =====================================================================
+# Section 3: Referenced docs (specs, contracts)
+# =====================================================================
+
+echo "=== Syncing referenced docs ==="
+
+DOCS=(
+  "BACKWARD_COMPATIBILITY.md"
+  ".ai/specs/SPEC-013-2026-01-27-decouple-module-setup.md"
+  ".ai/specs/SPEC-045b-data-sync-hub.md"
+  ".ai/specs/SPEC-045-2026-02-24-integration-marketplace.md"
+  ".ai/specs/SPEC-045a-foundation.md"
+)
+
+REPO_RAW_URL="${AGENTS_BASE_URL}"
+REF_DIR="${AGENTS_DIR}"
+
+for doc_path in "${DOCS[@]}"; do
+  echo "Fetching ${doc_path}..."
+  fetch_file "${REPO_RAW_URL}/${doc_path}" "${REF_DIR}/${doc_path}" || echo "  (skipped)"
+done
+echo ""
+
 echo "Done. Source commit: ${COMMIT_SHA:0:7}"
 echo ""
 echo "Next steps:"
