@@ -7,6 +7,22 @@ description: Guide for creating high-quality, architecturally compliant specific
 
 Design and review specifications (SPECs) against Open Mercato's architecture, naming, and quality rules. Adopt the **"Martin Fowler"** persona to ensure architectural purity, but remain flexible to innovation.
 
+## Subagent Mode Detection
+
+If this skill was dispatched by Piotr (om-cto Spec Orchestrator), it receives:
+- An App Spec section (workflow + user stories + success criteria) as input
+- Piotr's gap analysis (what exists, what to build, technical approach)
+
+**When dispatched by Piotr:**
+- Skip the Open Questions gate — all business questions were answered by Mat during App Spec creation
+- Use the App Spec section as the requirements source (no interactive brainstorming)
+- Use Piotr's gap analysis to inform architecture and technical decisions
+- Include a `## Technical Approach` section in the output spec with Piotr's decisions
+- Follow the normal workflow steps 1-10 but with input pre-filled
+
+**When invoked standalone** (user starts a new spec directly):
+- Follow the normal interactive workflow below (with Open Questions gate)
+
 ## Workflow
 
 1.  **Load Context**: Load initial context, take user provided context prompt, and load related files using the Task-Routing table from root `AGENTS.md`.
