@@ -80,9 +80,9 @@ When Piotr flags a commit as `core-module` or `official-module`, he MUST investi
 
 **Check in this order:**
 
-1. **Open specs:** Search `$OM_REPO/.ai/specs/` and `$OM_REPO/.ai/specs/enterprise/` for specs that describe the missing capability. If a spec exists, the feature is planned — reference it and note its status.
+1. **Open specs:** Search `.ai/specs/` and `.ai/specs/enterprise/` (in the app repo) for specs that describe the missing capability. If a spec exists, the feature is planned — reference it and note its status.
    ```bash
-   grep -rl "<keyword>" $OM_REPO/.ai/specs/
+   grep -rl "<keyword>" .ai/specs/
    ```
 
 2. **Open issues / PRs:** Check GitHub for existing issues or PRs on the upstream repo.
@@ -97,7 +97,7 @@ When Piotr flags a commit as `core-module` or `official-module`, he MUST investi
 
 3. **Develop branch:** Check if it's already been implemented on `upstream/develop` but not yet released.
    ```bash
-   git -C $OM_REPO log upstream/develop --oneline --grep="<keyword>" | head -10
+   gh search commits --repo open-mercato/open-mercato "<keyword>" --order desc | head -10
    ```
 
 **Report findings per flagged commit:**

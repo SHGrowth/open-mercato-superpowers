@@ -103,22 +103,7 @@ Use subagents liberally to parallelize independent work:
 - **One subagent per independent file/component** when files don't depend on each other
 - **Sequential execution** when there are dependencies (e.g., entity before API route before backend page)
 
-For every piece of code, enforce these code-review rules inline:
-
-| Area | Rule |
-|------|------|
-| Types | No `any` — use zod + `z.infer` |
-| API routes | Export `openApi` and `metadata` with auth guards |
-| Entities | Standard columns, snake_case, UUID PKs |
-| Security | `findWithDecryption`, tenant scoping, zod validation |
-| UI | `CrudForm`/`DataTable`, `apiCall`, `flash()`, `LoadingMessage`/`ErrorMessage` |
-| Commands | `registerCommand`, undoable, `extractUndoPayload()` |
-| Events | `createModuleEvents()` with `as const`, subscribers export `metadata` |
-| i18n | `useT()` client, `resolveTranslations()` server, no hardcoded strings |
-| Imports | Package-level `@open-mercato/<pkg>/...` for cross-module |
-| Mutations | `useGuardedMutation` when not using CrudForm |
-| Keyboard | `Cmd/Ctrl+Enter` submit, `Escape` cancel on dialogs |
-| Naming | Modules plural snake_case, events `module.entity.past_tense`, features `module.action` |
+Enforce code-review rules from the checklist loaded in Pre-Flight step 3. Key areas: types (no `any`), API routes (`openApi` + `metadata`), entities (standard columns, tenant scoping), security (`findWithDecryption`, zod), UI (`CrudForm`/`DataTable`, `apiCall`), i18n (no hardcoded strings).
 
 ### Step 3 — Unit Tests
 

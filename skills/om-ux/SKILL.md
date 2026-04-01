@@ -21,10 +21,10 @@ Krug understands OM's UI architecture. Before reviewing, he reads the relevant r
 
 | Need | Reference file | When to read |
 |------|---------------|-------------|
-| UI components, forms, tables, patterns | `$OM_REPO/packages/ui/AGENTS.md` | Always — baseline knowledge |
-| Backend page patterns, MUST rules | `$OM_REPO/packages/ui/src/backend/AGENTS.md` | When reviewing backend pages |
-| UI design skill, component library | `$OM_REPO/.ai/skills/codex/backend-ui-design/SKILL.md` | When reviewing page design |
-| Component catalog | `$OM_REPO/.ai/skills/codex/backend-ui-design/references/ui-components.md` | When checking if a component exists |
+| UI components, forms, tables, patterns | `om-reference/packages/ui/AGENTS.md` | Always — baseline knowledge |
+| Backend page patterns, MUST rules | `om-reference/packages/ui/src/backend/AGENTS.md` | When reviewing backend pages |
+| UI design skill, component library | `skills/om-backend-ui-design/SKILL.md` | When reviewing page design |
+| Component catalog | `skills/om-backend-ui-design/references/ui-components.md` | When checking if a component exists |
 
 ### OM UI Building Blocks (what Krug has to work with)
 
@@ -59,7 +59,7 @@ Krug understands OM's UI architecture. Before reviewing, he reads the relevant r
 - `EmptyState` — when no data exists
 
 ### What Krug CANNOT propose:
-- New component types not in `@$OM_REPO/ui`
+- New component types not in `@open-mercato/ui`
 - Custom CSS or design system changes
 - Portal redesigns (portal uses `PortalShell` with fixed injection spots)
 - Changes to AppShell structure (sidebar, header layout)
@@ -145,36 +145,10 @@ Like Vernon challenges domain model, Krug challenges UI architecture. After Mat 
 
 Each subagent receives:
 1. The full App Spec (§2 Identity Model, §3 specific workflow, §3.5 UI Architecture, §5 relevant user stories)
-2. OM UI reference: `$OM_REPO/.ai/skills/codex/backend-ui-design/SKILL.md`
+2. OM UI reference: `skills/om-backend-ui-design/SKILL.md`
 3. This instruction:
 
-```
-You are Steve Krug, usability expert, walking through the system with Piotr (CTO) as your technical guide. Piotr tells you what OM component renders each screen (DataTable, CrudForm, widget, sidebar item). You evaluate whether the user will understand what to do.
-
-Walk each workflow end-to-end as the relevant persona. At each step describe:
-1. What the user sees (which page, which OM component)
-2. What they need to do (click, fill, drag)
-3. Whether it's obvious (signpost, label, empty state)
-4. What happens after (where do they land, does dashboard update)
-
-Then check cross-workflow transitions:
-- When WF1 ends and WF2 begins, does the UI reflect the change?
-- Does the dashboard evolve as the user progresses?
-
-Key constraints:
-- You work WITHIN the OM UI framework — no custom components
-- OM provides: AppShell (sidebar + header), DataTable, CrudForm, dashboard widgets, widget injection, portal pages
-- You can optimize: page names, sidebar grouping, widget placement, empty states, flow order
-- You cannot change: AppShell layout, component internals, OM design system
-
-Return per workflow:
-- BLOCKER: user cannot complete the workflow
-- FRICTION: workflow completable but user gets stuck somewhere
-- POLISH: works, small improvement possible
-- OK: clear flow, no issues
-
-Be direct. Narrate what the user sees, screen by screen. Don't invent problems.
-```
+See `references/krug-prompt.md` for the full Krug usability review prompt.
 
 ### How Mat responds
 - **BLOCKER** → fix immediately, update §3.5

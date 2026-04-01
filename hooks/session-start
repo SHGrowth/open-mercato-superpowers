@@ -62,6 +62,7 @@ Ask what they'd like to work on. If they provide a task directly, match it to th
 - om-code-review: CI/CD verification gate + full OM checklist (20+ sections)
 - om-integration-tests: Playwright integration test creation and execution
 - om-troubleshooter: Diagnose and fix common OM issues (errors, 404s, migrations, widgets)
+- om-toolkit-review: Audit skill corpus for context waste, duplication, and structural issues
 
 ## Rules
 
