@@ -108,11 +108,11 @@ Don't say "checked, nothing there." Show what you found.
 2. **Config** — toggle module, env var, build flag
 3. **Official module** — exists in `open-mercato/official-modules`? Install it.
 4. **Move / re-export** — code exists, wrong path
-5. **Extend via UMES** — widget injection, interceptors, enrichers, extensions, DI overrides. **Invoke `om-system-extension`** to guide the specific UMES mechanism (decision tree §1 maps the goal to the right extension type).
+5. **Extend via UMES** — widget injection, interceptors, enrichers, extensions, DI overrides. Reference the `om-system-extension` decision tree (§1) to determine the right UMES mechanism — do NOT load the full skill or generate code during advisory/spec phases.
 5b. **Portal page** — if persona is CustomerUser (§2), custom portal page from §3.5 spec. Estimate per page in gap analysis based on: data fetching complexity, form validation, real-time events, role-conditional content. Don't use defaults — each page is different.
 6. **n8n workflow** — if it's external orchestration, LLM calls, or scheduled processing → n8n with `open-mercato/n8n-nodes`. Keep LLM/external API work out of OM.
 7. **Separate package** — if it's a provider/integration, it's a `packages/` workspace
-8. **New module code** — only if 1-7 failed. Explain why. **Invoke `om-module-scaffold`** if a brand new module needs to be created, or **`om-eject-and-customize`** if an existing core module needs to be ejected and modified.
+8. **New module code** — only if 1-7 failed. Explain why. Note that `om-module-scaffold` or `om-eject-and-customize` will be invoked later during implementation — do NOT invoke them during advisory/spec phases.
 
 ### 5. Estimate gaps in atomic commits (Ralph loop)
 

@@ -141,14 +141,16 @@ Every piece of user feedback (bug report, change request, observation) MUST be t
 |---|---|---|---|
 | **Code bug** | Implementation doesn't match the spec | "Button doesn't save" / "Wrong API response" | Fix code, re-verify, re-checkpoint. No spec changes. |
 | **Spec gap** | Spec is missing a scenario or detail the user expected | "What about bulk invite?" / "This should also notify by email" | Update the functional spec, re-implement affected parts, re-verify, re-checkpoint. |
-| **Business change** | The underlying business requirement changed or was misunderstood | "Actually partners should NOT see this" / "We need a different workflow" | **Escalate to Mat.** Mat updates the App Spec, Piotr re-runs Spec Orchestrator for affected specs. |
+| **Business change** | The underlying business requirement changed or was misunderstood | "Actually partners should NOT see this" / "We need a different workflow" | **Escalate to the user.** Present the change, ask the user to update the App Spec (or confirm the update), then Piotr re-runs Spec Orchestrator for affected specs. |
 
-2. **If Piotr is unsure** whether it's a spec gap or business change, he **asks Mat** (dispatches om-product-manager as a subagent) to classify. Mat knows whether the original App Spec covered this or not.
+2. **If Piotr is unsure** whether it's a spec gap or business change, he **asks the user** to classify. Present both interpretations and let the user decide.
+
+> **No autonomous re-dispatch to om-product-manager.** Business changes surface to the user, who decides whether to re-engage Mat for a full App Spec revision or handle it as a scoped update. This prevents circular om-cto ↔ om-product-manager loops.
 
 3. **After triage:**
    - Code bug → Piotr fixes autonomously
    - Spec gap → Piotr updates the functional spec, then re-implements
-   - Business change → Mat updates App Spec section → Piotr re-runs spec writing for affected specs → user re-reviews → Piotr re-implements
+   - Business change → User confirms App Spec update → Piotr re-runs spec writing for affected specs → user re-reviews → Piotr re-implements
 
 This ensures the App Spec and functional specs stay in sync with reality. Specs are living documents, not throwaway artifacts.
 

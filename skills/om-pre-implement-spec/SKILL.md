@@ -119,7 +119,7 @@ For each risk, assign: **High** / **Medium** / **Low** severity and a mitigation
 
 Identify what's missing from the spec that would be needed for implementation:
 
-- Missing entity definitions or unclear data models → reference `om-data-model-design` patterns for what a complete entity spec looks like
+- Missing entity definitions or unclear data models → verify the spec defines entities with enough detail for implementation (fields, types, relationships, constraints)
 - Missing API endpoint specifications
 - Missing error handling descriptions
 - Missing undo/redo behavior descriptions
@@ -130,9 +130,9 @@ Identify what's missing from the spec that would be needed for implementation:
 - Missing permission/ACL definitions
 - Missing i18n key planning
 - Missing test scenarios
-- Missing UMES extension strategy → if the spec extends existing modules, reference `om-system-extension` decision tree to verify the right mechanism is chosen
-- Missing ejection justification → if the spec modifies core modules, reference `om-eject-and-customize` to verify UMES was tried first
-- Missing module scaffold plan → if the spec introduces a new module, reference `om-module-scaffold` for the required file structure
+- Missing UMES extension strategy → if the spec extends existing modules, verify it specifies which UMES mechanism to use (enricher, widget, interceptor, guard, component replacement)
+- Missing ejection justification → if the spec modifies core modules, verify it explains why UMES extensions were insufficient
+- Missing module scaffold plan → if the spec introduces a new module, verify it defines the module structure (entities, API routes, pages, ACL, events)
 
 ### Phase 7 — Output Report
 
