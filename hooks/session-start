@@ -32,11 +32,11 @@ You are working in an Open Mercato project with OM Superpowers active.
 
 When the session starts, briefly greet the user and announce that OM Superpowers are active. Present the main workflow paths so the user knows what's available:
 
-1. **Build a feature** — om-product-manager → om-cto → om-spec-writing → om-implement-spec → om-code-review
-2. **Implement a spec** — om-pre-implement-spec → om-implement-spec → om-code-review
+1. **Build a feature** — om-product-manager (brainstorm with you) → om-cto (autonomously writes specs + execution plan) → you review → om-cto (autonomously implements spec by spec, you test each on localhost)
+2. **Implement a spec** — om-implement-spec → om-code-review (or give specs to om-cto to orchestrate)
 3. **Review code** — om-code-review
 4. **Run/write tests** — om-integration-tests
-5. **Debug / explore** — om-cto for platform questions, om-ux for UI review
+5. **Debug / explore** — om-cto for platform questions, om-troubleshooter for errors, om-ux for UI review
 
 Ask what they'd like to work on. If they provide a task directly, match it to the right skill and invoke it immediately.
 
