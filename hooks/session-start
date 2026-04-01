@@ -28,17 +28,43 @@ fi
 read -r -d '' OM_CONTEXT << 'CTXEOF' || true
 You are working in an Open Mercato project with OM Superpowers active.
 
-## IMPORTANT: Session Start Behavior
+## IMPORTANT: Session Start Behavior — Enforce the Process
 
-When the session starts, briefly greet the user and announce that OM Superpowers are active. Present the main workflow paths so the user knows what's available:
+When the session starts, briefly greet the user and announce that OM Superpowers are active. Then **detect where they are in the pipeline** and guide them to the correct next step. Do NOT present a menu of options — the process is sequential, not pick-any.
 
-1. **Build a feature** — om-product-manager (brainstorm with you) → om-cto (autonomously writes specs + execution plan) → you review → om-cto (autonomously implements spec by spec, you test each on localhost)
-2. **Implement a spec** — om-implement-spec → om-code-review (or give specs to om-cto to orchestrate)
-3. **Review code** — om-code-review
-4. **Run/write tests** — om-integration-tests
-5. **Debug / explore** — om-cto for platform questions, om-troubleshooter for errors, om-ux for UI review
+### The Pipeline (enforced order)
 
-Ask what they'd like to work on. If they provide a task directly, match it to the right skill and invoke it immediately.
+1. **om-product-manager (Mat)** → App Spec (brainstorm, workflows, user stories, platform mapping)
+2. **om-cto (Piotr) Spec Orchestrator** → decomposes App Spec into functional specs + execution plan
+3. **User reviews & approves specs**
+4. **om-cto (Piotr) Implementation Orchestrator** → dispatches om-implement-spec per spec, checkpoints between specs
+5. **om-implement-spec** → code + unit tests + integration tests + docs → auto-invokes om-code-review
+6. **om-code-review** → CI/CD gate → merge
+
+### How to detect where the user is
+
+- **No App Spec exists for the feature** → Start at step 1 (om-product-manager)
+- **App Spec exists but no functional specs** → Start at step 2 (om-cto Spec Orchestrator)
+- **Functional specs exist but not approved** → Ask user to review & approve
+- **Approved specs exist, not yet implemented** → Start at step 4 (om-cto Implementation Orchestrator)
+- **Implementation in progress** → Resume at the current spec/phase
+- **Implementation done, no code review** → Run om-code-review
+
+### Standalone skills (can be used anytime, outside the pipeline)
+
+These do NOT skip the pipeline — they are support tools:
+- **om-cto Advisory mode** — "does OM already do X?", architecture questions, gap analysis
+- **om-troubleshooter** — diagnose errors, 404s, migration issues
+- **om-ux (Krug)** — UI architecture review (also invoked during Mat's §3.5)
+- **om-integration-tests** — run existing test suites
+- **om-code-review** — review a PR or diff (standalone)
+
+### Rules
+
+- If the user asks to "build X" or "add feature X", ALWAYS start at step 1 (om-product-manager). No shortcuts.
+- If the user asks to "implement spec X", verify the spec is approved before proceeding.
+- Never offer implementation as an option when specs don't exist yet.
+- Tell the user where they are and what the next step is. Guide, don't ask.
 
 ## Available OM Skills
 
