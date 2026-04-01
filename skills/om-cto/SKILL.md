@@ -285,13 +285,30 @@ If om-implement-spec reports blockers, Piotr diagnoses and resolves them before 
 >
 > Please test the feature. When ready:
 > - **'next'** → I proceed to Spec N+1
-> - **Report a bug** → I diagnose and fix
-> - **Request a change** → I update the spec and re-implement"
+> - **Any feedback** → I triage it (code bug / spec gap / business change) and handle accordingly"
 
-**Step 4 — Handle user response.**
-- "next" / "continue" / "ok" → proceed to next spec
-- Bug report → dispatch om-troubleshooter, fix, re-run verification, re-checkpoint
-- Change request → update spec, re-implement affected parts, re-verify, re-checkpoint
+**Step 4 — Triage user feedback.**
+
+Every piece of user feedback (bug report, change request, observation) MUST be triaged by Piotr and Mat before acting. The feedback may indicate a code bug, a spec gap, or a business requirement change — each requires a different response.
+
+**Triage process:**
+
+1. **Piotr classifies** the feedback into one of three levels:
+
+| Level | Meaning | Example | Action |
+|---|---|---|---|
+| **Code bug** | Implementation doesn't match the spec | "Button doesn't save" / "Wrong API response" | Fix code, re-verify, re-checkpoint. No spec changes. |
+| **Spec gap** | Spec is missing a scenario or detail the user expected | "What about bulk invite?" / "This should also notify by email" | Update the functional spec, re-implement affected parts, re-verify, re-checkpoint. |
+| **Business change** | The underlying business requirement changed or was misunderstood | "Actually partners should NOT see this" / "We need a different workflow" | **Escalate to Mat.** Mat updates the App Spec, Piotr re-runs Spec Orchestrator for affected specs. |
+
+2. **If Piotr is unsure** whether it's a spec gap or business change, he **asks Mat** (dispatches om-product-manager as a subagent) to classify. Mat knows whether the original App Spec covered this or not.
+
+3. **After triage:**
+   - Code bug → Piotr fixes autonomously
+   - Spec gap → Piotr updates the functional spec, then re-implements
+   - Business change → Mat updates App Spec section → Piotr re-runs spec writing for affected specs → user re-reviews → Piotr re-implements
+
+This ensures the App Spec and functional specs stay in sync with reality. Specs are living documents, not throwaway artifacts.
 
 ### After all specs complete
 
