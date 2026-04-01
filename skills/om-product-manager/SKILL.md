@@ -350,7 +350,7 @@ digraph flow {
     "Phase 4: Gap Analysis + Phasing" [shape=box];
     "CHALLENGER: Vernon reviews §7" [shape=box style=filled fillcolor=lightsalmon];
     "Phase 5: Handoff" [shape=box];
-    "brainstorming → planning → implementation" [shape=box style=filled fillcolor=lightgreen];
+    "Piotr: Spec Orchestrator" [shape=box style=filled fillcolor=lightgreen];
 
     "Phase 0: Business Context + Domain Model" -> "CHALLENGER: Vernon reviews §1";
     "CHALLENGER: Vernon reviews §1" -> "Phase 1: Workflows + ROI" [label="pass"];
@@ -375,7 +375,7 @@ digraph flow {
     "ACCEPTANCE: Vernon writes criteria" -> "MAT: challenges criteria";
     "MAT: challenges criteria" -> "Phase 5: Handoff" [label="agreed"];
     "MAT: challenges criteria" -> "ACCEPTANCE: Vernon writes criteria" [label="over-engineered"];
-    "Phase 5: Handoff" -> "brainstorming → planning → implementation";
+    "Phase 5: Handoff" -> "Piotr: Spec Orchestrator";
 
     "ACCEPTANCE: Vernon writes criteria" [shape=box style=filled fillcolor=lightsalmon];
     "MAT: challenges criteria" [shape=box style=filled fillcolor=lightblue];
@@ -383,3 +383,16 @@ digraph flow {
 ```
 
 Mat delivers the right thing. Vernon challenges the domain model. Piotr ensures it's mapped right. All three agree before any code.
+
+## Handoff to Piotr
+
+After Phase 5 (Handoff) is complete and the App Spec is finalized:
+
+**Dispatch Piotr in Spec Orchestrator mode.** He will autonomously:
+1. Decompose the App Spec into functional specs
+2. Write each spec using om-spec-writing (with gap analysis from om-cto advisory logic)
+3. Cross-validate all specs for contradictions and coverage
+4. Produce an execution plan
+5. Present specs + plan to the user for review
+
+Do NOT invoke writing-plans or brainstorming after Mat. The next step is always Piotr's Spec Orchestrator. Mat's job is done when the App Spec is complete.
