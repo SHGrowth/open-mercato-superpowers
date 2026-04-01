@@ -46,17 +46,22 @@ Ask what they'd like to work on. If they provide a task directly, match it to th
 - om-product-manager: Product owner workflow — business context, workflows, user stories, platform mapping
 - om-cto: CTO challenge — gap analysis, "does OM already do X?", atomic commit estimation
 - om-ux: UI architecture review — navigation, task completion, cognitive load
+- om-spec-writing: Specification creation with architectural compliance
 
 **Implementation:**
 - om-implement-spec: Multi-phase spec implementation with coordinated subagents
-- om-spec-writing: Specification creation with architectural compliance
 - om-pre-implement-spec: Pre-implementation BC impact and risk analysis
-- om-integration-tests: Playwright integration test creation and execution
+- om-module-scaffold: Bootstrap a new module from scratch (entities, API, pages, ACL, events)
+- om-data-model-design: Entity design, relationships, migrations, MikroORM patterns
+- om-system-extension: UMES extensions — enrichers, widgets, interceptors, guards, component replacement
+- om-eject-and-customize: Safe module ejection when UMES isn't enough
 - om-integration-builder: Provider package development (payment, shipping, data sync)
 - om-backend-ui-design: Backend UI patterns within OM framework
 
-**Quality:**
+**Testing & Quality:**
 - om-code-review: CI/CD verification gate + full OM checklist (20+ sections)
+- om-integration-tests: Playwright integration test creation and execution
+- om-troubleshooter: Diagnose and fix common OM issues (errors, 404s, migrations, widgets)
 
 ## Rules
 
