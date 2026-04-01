@@ -4,9 +4,37 @@ Claude Code plugin for Open Mercato developers. 16 skills covering the full OM l
 
 ## Install
 
+### Claude Code (CLI & Desktop)
+
+```bash
+# Install the plugin
+/plugin marketplace add SHGrowth/om-superpowers
+
+# If prompted, confirm installation
+/plugin install om-superpowers@SHGrowth/om-superpowers
 ```
-/install-plugin SHGrowth/om-superpowers
+
+### Update to latest version
+
+```bash
+# Pull latest changes from GitHub
+/plugin marketplace update SHGrowth/om-superpowers
+
+# Reload without restarting the session
+/reload-plugins
 ```
+
+Auto-update is off by default for third-party plugins. Enable it in `/plugin` → **Marketplaces** tab.
+
+### Codex CLI
+
+Codex does not support Claude Code plugins natively. To use OM skills in Codex:
+
+1. Copy the `skills/` directory into your project's `.agents/skills/` (Codex auto-discovers skills from this path)
+2. Copy `om-reference/` into your project root (skills reference these for platform conventions)
+3. Skills that use the `Skill` tool will need manual invocation — Codex doesn't have a skill tool equivalent
+
+Alternatively, use the [codex-plugin-cc](https://github.com/openai/codex-plugin-cc) to run Codex inside Claude Code sessions where OM skills are available.
 
 ### Prerequisites
 
