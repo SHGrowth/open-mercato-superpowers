@@ -205,6 +205,40 @@ Success: [concrete, testable criteria — what the user sees/does when it works]
 - What modules do they need?
 - If you can't answer — story is incomplete.
 
+### Cross-Story Impact Analysis
+
+<HARD-GATE>
+After ALL stories are written and before Vernon's Phase 2 challenge, complete the impact matrix below. Do NOT skip this — isolated stories that ignore cross-story side effects are the #1 source of production surprises.
+</HARD-GATE>
+
+User stories don't exist in isolation. When Story A changes state, it can break Story B's preconditions, trigger Story C unexpectedly, or create contradictions with Story D. Analyze every story for cross-story consequences.
+
+**For each story, ask:**
+1. **What state does this story change?** (entity created/updated/deleted, status transition, permission granted/revoked, metric recalculated)
+2. **Which other stories depend on that state?** (preconditions that assume the old state, queries that read it, workflows that trigger on it)
+3. **What happens to users mid-workflow?** If User X is halfway through Story B and Story A fires — does Story B still make sense?
+4. **Can two stories run concurrently and contradict?** (e.g., "approve tier upgrade" and "downgrade for inactivity" fire simultaneously)
+5. **If this story fails or reverts, which stories break?** (rollback cascades)
+
+**Cross-Story Impact Matrix:**
+
+| Story | State changed | Stories affected | Impact | Mitigation |
+|-------|--------------|-----------------|--------|------------|
+| _example:_ US-01 | Agency tier upgraded | US-04 (benefits recalc), US-07 (match score changes) | Benefits and match score must update atomically or user sees stale data | Domain event `AgencyTierChanged` triggers downstream recalcs |
+| _example:_ US-03 | BD leaves organization | US-02 (WIP count drops), US-05 (open deals orphaned) | Orphaned deals have no owner, WIP metrics inaccurate | Reassignment workflow required before removal completes |
+
+**Conflict patterns to watch for:**
+- **Race conditions:** Two stories modify the same entity — which wins? (e.g., manual tier override vs. automated evaluation)
+- **Cascade storms:** Story A triggers event → Story B reacts → triggers event → Story C reacts → unbounded chain
+- **Stale preconditions:** Story assumes state X, but Story Y changed it minutes ago (e.g., "user sees tier benefits" after downgrade but cache hasn't cleared)
+- **Orphaned references:** Story deletes/archives an entity that other stories reference (e.g., removing a metric type that active tier rules depend on)
+- **Timing gaps:** Story A and Story B are both correct individually, but the time between them creates an inconsistent window (e.g., tier changed but notifications haven't sent — user acts on stale info)
+
+**If the impact matrix reveals:**
+- **Missing stories** (e.g., "we need a reassignment workflow") → add them before proceeding
+- **Contradictions** (e.g., two stories can't both be true) → resolve them, don't defer as open questions
+- **Missing domain events** (e.g., no event connects Story A's state change to Story B's reaction) → add them to the domain model
+
 ## Phase 3: Map to Platform
 
 For EACH user story, check OM capabilities **in order**. Stop at the first match:
@@ -307,7 +341,8 @@ digraph flow {
     "Workflow Gap Matrix" [shape=box];
     "PIOTR: verify workflow mapping" [shape=box style=filled fillcolor=lightyellow];
     "Phase 2: User Stories" [shape=box];
-    "CHALLENGER: Vernon reviews §5" [shape=box style=filled fillcolor=lightsalmon];
+    "Cross-Story Impact Analysis" [shape=box style=filled fillcolor=lightcyan];
+    "CHALLENGER: Vernon reviews §5 + impacts" [shape=box style=filled fillcolor=lightsalmon];
     "Phase 3: Map to Platform" [shape=box];
     "User Story Gap Matrix" [shape=box];
     "PIOTR: verify story mapping" [shape=box style=filled fillcolor=lightyellow];
@@ -326,9 +361,10 @@ digraph flow {
     "Workflow Gap Matrix" -> "PIOTR: verify workflow mapping";
     "PIOTR: verify workflow mapping" -> "Phase 2: User Stories" [label="approved"];
     "PIOTR: verify workflow mapping" -> "Workflow Gap Matrix" [label="re-map"];
-    "Phase 2: User Stories" -> "CHALLENGER: Vernon reviews §5";
-    "CHALLENGER: Vernon reviews §5" -> "Phase 3: Map to Platform" [label="pass"];
-    "CHALLENGER: Vernon reviews §5" -> "Phase 2: User Stories" [label="critical"];
+    "Phase 2: User Stories" -> "Cross-Story Impact Analysis";
+    "Cross-Story Impact Analysis" -> "CHALLENGER: Vernon reviews §5 + impacts";
+    "CHALLENGER: Vernon reviews §5 + impacts" -> "Phase 3: Map to Platform" [label="pass"];
+    "CHALLENGER: Vernon reviews §5 + impacts" -> "Phase 2: User Stories" [label="critical"];
     "Phase 3: Map to Platform" -> "User Story Gap Matrix";
     "User Story Gap Matrix" -> "PIOTR: verify story mapping";
     "PIOTR: verify story mapping" -> "Phase 4: Gap Analysis + Phasing" [label="approved"];

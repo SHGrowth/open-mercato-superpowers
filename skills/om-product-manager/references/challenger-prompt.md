@@ -32,6 +32,14 @@ Focus areas (pick what's relevant to the section):
 - Is external data validated/translated at the boundary?
 - Could external system changes break domain invariants?
 
+**Cross-Story Impact (§5 User Stories only):**
+- Does Story A's state change break Story B's preconditions? (e.g., tier downgrade while RFP evaluation is in progress)
+- Can two stories fire concurrently and contradict each other? (e.g., manual override + automated evaluation on the same entity)
+- Are there cascade chains where one story's event triggers another story's reaction, which triggers another? Is the chain bounded?
+- If Story A fails or reverts, do dependent stories handle that gracefully or silently corrupt?
+- Is there a timing window between two stories where the system is in an inconsistent state that a user could observe or act on?
+- Does the Cross-Story Impact Matrix in the App Spec cover all stories, or are some missing?
+
 Return:
 - CRITICAL: flaws that would cause production bugs or domain confusion (must fix)
 - WARNING: weak spots that could cause problems at scale (should fix)
