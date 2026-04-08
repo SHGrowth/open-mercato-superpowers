@@ -46,7 +46,7 @@ This allows om-implement-spec to work both as an autonomous subagent (dispatched
 
 **Skip this section if the spec has a `## Technical Approach` section** — Piotr already made this decision. Go directly to Implementation Workflow.
 
-When invoked standalone (no Technical Approach in spec), ask the user:
+When invoked standalone (no Technical Approach in spec), invoke `om-user-proxy` first. The proxy can resolve the extension-vs-core decision if the app spec or lessons contain a prior decision for this module/entity type, or if Piotr has already documented the approach in a related spec. If the proxy resolves it, proceed with the resolved answer. If not, ask the user:
 
 > **Where should this feature live?**
 >
