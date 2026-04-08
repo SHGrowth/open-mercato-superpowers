@@ -71,6 +71,12 @@ Produce an execution plan document:
 ## Estimated total: N specs, ~M atomic commits
 ```
 
+### Step 4.5 — Proxy gate
+
+Before presenting specs to the user, collect any detail questions that arose during spec writing (ambiguities, trade-off choices, gap decisions). Invoke `om-user-proxy` with these questions. Incorporate resolved answers into the specs. Only present the escalation list alongside the specs for user review.
+
+**The approval gate itself ("approve these specs?") goes directly to the user — the proxy does NOT make go/no-go decisions.**
+
 ### Step 5 — Present to user (ONLY checkpoint)
 
 Present all specs + execution plan to the user:
@@ -128,6 +134,16 @@ If om-implement-spec reports blockers, Piotr diagnoses and resolves them before 
 > Please test the feature. When ready:
 > - **'next'** → I proceed to Spec N+1
 > - **Any feedback** → I triage it (code bug / spec gap / business change) and handle accordingly"
+
+**Step 3.5 — Proxy pre-triage.**
+
+Before presenting feedback triage to the user, invoke `om-user-proxy` with the findings. The proxy can resolve:
+- **Code bugs** — always fixable without user input (proxy resolves: "fix it")
+- **Spec gaps** where the answer is in the app spec — proxy resolves with citation
+
+The proxy escalates:
+- **Business changes** — always needs user judgment
+- **Spec gaps** where the answer is NOT in the app spec or lessons
 
 **Step 4 — Triage user feedback.**
 
