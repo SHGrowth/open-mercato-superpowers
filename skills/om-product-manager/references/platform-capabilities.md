@@ -5,10 +5,10 @@ Use during Phase 3 (Map to Platform) to check what OM already provides before wr
 ## Update rules
 
 This file is only updated when ALL of the following are true:
-1. Mat triggered a Piotr session (checkpoint #1 or #2)
+1. Cagan triggered a Piotr session (checkpoint #1 or #2)
 2. Piotr discovered a capability not listed here
 3. Piotr pointed to the specific OM repository where the capability lives
-4. Mat confirmed the capability is **implemented and merged to main or develop** on that repository (not a PR, not a branch, not planned)
+4. Cagan confirmed the capability is **implemented and merged to main or develop** on that repository (not a PR, not a branch, not planned)
 
 Do NOT add capabilities based on roadmap, discussions, or unmerged code.
 

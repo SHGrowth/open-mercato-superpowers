@@ -58,7 +58,7 @@ The plugin auto-detects OM projects on session start by checking for `@open-merc
 
                     ┌─────────────────┐              ┌─────────────────────────┐
                     │  om-cto         │              │  om-product-manager     │
-                    │  (gap analysis) │              │  (App Spec with Mat)    │
+                    │  (gap analysis) │              │  (App Spec with Cagan)  │
                     ├─────────────────┤              └───────────┬─────────────┘
                     │  om-code-review │                          │
                     │  (review code)  │                          ▼

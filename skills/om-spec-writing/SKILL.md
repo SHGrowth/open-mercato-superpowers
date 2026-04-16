@@ -14,7 +14,7 @@ If this skill was dispatched by Piotr (om-cto Spec Orchestrator), it receives:
 - Piotr's gap analysis (what exists, what to build, technical approach)
 
 **When dispatched by Piotr:**
-- Skip the Open Questions gate — all business questions were answered by Mat during App Spec creation
+- Skip the Open Questions gate — all business questions were answered by Cagan during App Spec creation
 - Use the App Spec section as the requirements source (no interactive brainstorming)
 - Use Piotr's gap analysis to inform architecture and technical decisions
 - Include a `## Technical Approach` section in the output spec with Piotr's decisions

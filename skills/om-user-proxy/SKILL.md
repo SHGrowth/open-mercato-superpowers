@@ -104,7 +104,7 @@ Append to the appropriate lessons file:
 Even if invoked, pass these through to the user without attempting resolution:
 
 - **Phase gates** — "specs approved, start implementing?", "ready to merge?"
-- **Discovery questions** — Mat's Phase 0 business questions ("Who pays?", "What's the flywheel?")
+- **Discovery questions** — Cagan's Phase 0 business questions ("Who pays?", "What's the flywheel?")
 - **Empirical verification** — "does this work on localhost?", "do tests pass?"
 - **First-time domain questions** — anything where no prior context exists AND the question requires business judgment
 

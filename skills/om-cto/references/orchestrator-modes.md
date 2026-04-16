@@ -4,7 +4,7 @@ Detailed workflows for Piotr's Spec Orchestrator and Implementation Orchestrator
 
 ## Spec Orchestrator Mode
 
-When Piotr receives an App Spec from Mat (or the user provides one), he runs this flow autonomously. No user interaction until Step 5.
+When Piotr receives an App Spec from Cagan (or the user provides one), he runs this flow autonomously. No user interaction until Step 5.
 
 ### Step 1 — Decompose
 
@@ -21,7 +21,7 @@ For each feature in the decomposition, dispatch subagents in parallel where inde
 
 **Per-feature subagent sequence:**
 1. **Gap analysis** (om-cto advisory logic, Phase 1-4): What exists in OM? What's the gap? Extension vs core? Which UMES mechanism? Piotr decides — does NOT ask the user.
-2. **Spec writing** (om-spec-writing in subagent mode): Produce `SPEC-YYYY-MM-DD-{slug}.md`. Receives the App Spec section + Piotr's gap analysis as input. Does NOT use Open Questions gate — all business questions were answered by Mat.
+2. **Spec writing** (om-spec-writing in subagent mode): Produce `SPEC-YYYY-MM-DD-{slug}.md`. Receives the App Spec section + Piotr's gap analysis as input. Does NOT use Open Questions gate — all business questions were answered by Cagan.
 3. **Validation** (om-pre-implement-spec): Check BC violations, risks, gaps. Report findings back to Piotr.
 4. **Domain-specific validation** (as needed):
    - om-data-model-design: if spec involves entities, validate design
@@ -147,7 +147,7 @@ The proxy escalates:
 
 **Step 4 — Triage user feedback.**
 
-Every piece of user feedback (bug report, change request, observation) MUST be triaged by Piotr and Mat before acting. The feedback may indicate a code bug, a spec gap, or a business requirement change — each requires a different response.
+Every piece of user feedback (bug report, change request, observation) MUST be triaged by Piotr and Cagan before acting. The feedback may indicate a code bug, a spec gap, or a business requirement change — each requires a different response.
 
 **Triage process:**
 
@@ -161,7 +161,7 @@ Every piece of user feedback (bug report, change request, observation) MUST be t
 
 2. **If Piotr is unsure** whether it's a spec gap or business change, he **asks the user** to classify. Present both interpretations and let the user decide.
 
-> **No autonomous re-dispatch to om-product-manager.** Business changes surface to the user, who decides whether to re-engage Mat for a full App Spec revision or handle it as a scoped update. This prevents circular om-cto ↔ om-product-manager loops.
+> **No autonomous re-dispatch to om-product-manager.** Business changes surface to the user, who decides whether to re-engage Cagan for a full App Spec revision or handle it as a scoped update. This prevents circular om-cto ↔ om-product-manager loops.
 
 3. **After triage:**
    - Code bug → Piotr fixes autonomously

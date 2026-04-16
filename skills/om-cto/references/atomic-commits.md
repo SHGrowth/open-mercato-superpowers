@@ -32,7 +32,7 @@ Typical atomic commit shapes:
 
 ## Subagent estimation
 
-For gap analysis checkpoints, Piotr dispatches **subagents** to estimate each workflow or user story (depending on the Mat phase). Each subagent:
+For gap analysis checkpoints, Piotr dispatches **subagents** to estimate each workflow or user story (depending on the Cagan phase). Each subagent:
 
 1. Takes one workflow (§4 checkpoint) or one user story group (§6 checkpoint)
 2. Reads the relevant OM module AGENTS.md to understand what's available

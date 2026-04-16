@@ -8,11 +8,11 @@
 > and how it maps to Open Mercato. Technical specs are generated from this document.
 > If a spec contradicts this document, this document wins.
 >
-> Each section has a checklist with owner (Mat or Piotr). Section is done when all checks pass.
+> Each section has a checklist with owner (Cagan or Piotr). Section is done when all checks pass.
 
 ---
 
-## 1. Business Context `Mat`
+## 1. Business Context `Cagan`
 
 ### 1.1 Business Model
 
@@ -90,7 +90,7 @@
 
 ---
 
-## 2. Identity Model `Mat`
+## 2. Identity Model `Cagan`
 
 > SINGLE SOURCE OF TRUTH. If any spec contradicts this, update the spec.
 
@@ -131,17 +131,17 @@ External persona?
 [Per persona: why this identity type? What modules do they need? What was the alternative and why it was rejected?]
 
 #### Checklist
-- [ ] Every persona has ONE identity type — User or CustomerUser, no "maybe both" `Mat`
-- [ ] Identity decision justified per persona — what modules they need drives the choice `Mat`
+- [ ] Every persona has ONE identity type — User or CustomerUser, no "maybe both" `Cagan`
+- [ ] Identity decision justified per persona — what modules they need drives the choice `Cagan`
 - [ ] No persona has two accounts — if someone needs both User and CustomerUser, the model is wrong `Piotr`
 - [ ] Org scoping defined per role — who sees which orgs, read-only vs read-write `Piotr`
-- [ ] Portal decision justified with decision tree — not just "used/not used" `Mat`
+- [ ] Portal decision justified with decision tree — not just "used/not used" `Cagan`
 - [ ] If Portal USED: every portal persona has custom page estimate `Piotr`
-- [ ] If Portal USED: §3.5 includes Portal Pages subsection with full page specs `Mat`
+- [ ] If Portal USED: §3.5 includes Portal Pages subsection with full page specs `Cagan`
 
 ---
 
-## 3. Workflows `Mat`
+## 3. Workflows `Cagan`
 
 > Each workflow traces to ROI. If a workflow doesn't move a KPI or enable one that does, cut it.
 
@@ -171,22 +171,22 @@ External persona?
 [Repeat per workflow]
 
 #### Checklist (per workflow)
-- [ ] End-to-end journey — first touchpoint to value delivery, no gaps `Mat`
-- [ ] Measurable ROI — specific metric that moves, not "users benefit" `Mat`
-- [ ] Boundaries — explicit start, end, and NOT-this-workflow `Mat`
-- [ ] 3-5 edge cases — high probability production scenarios `Mat`
+- [ ] End-to-end journey — first touchpoint to value delivery, no gaps `Cagan`
+- [ ] Measurable ROI — specific metric that moves, not "users benefit" `Cagan`
+- [ ] Boundaries — explicit start, end, and NOT-this-workflow `Cagan`
+- [ ] 3-5 edge cases — high probability production scenarios `Cagan`
 - [ ] Every step mapped to OM module `Piotr`
 
 #### Checklist (overall)
-- [ ] 3-7 core workflows defined `Mat`
+- [ ] 3-7 core workflows defined `Cagan`
 - [ ] No workflow requires >200 lines of new code — if it does, you missed a platform capability `Piotr`
 
 ---
 
-## 3.5 UI Architecture `Mat + Krug`
+## 3.5 UI Architecture `Cagan + Krug`
 
 > Defines what each persona sees in the UI. Navigation, pages, dashboard widgets, key user flows.
-> Mat drafts from user stories. Krug reviews for clarity and task completion.
+> Cagan drafts from user stories. Krug reviews for clarity and task completion.
 > Everything here uses OM's existing UI building blocks — no custom components.
 
 ### Navigation (per role)
@@ -257,13 +257,13 @@ External persona?
 | | "No X yet. [Create one]" | Link to create page |
 
 #### Checklist
-- [ ] Every persona has a defined login-to-primary-task flow `Mat`
+- [ ] Every persona has a defined login-to-primary-task flow `Cagan`
 - [ ] Navigation grouping matches how users think about their work `Krug`
 - [ ] Dashboard widgets answer "what to do next" not just "data" `Krug`
 - [ ] Empty states are helpful, not blank pages `Krug`
 - [ ] Custom pages use OM patterns (CrudForm, DataTable) — no custom UI `Piotr`
 - [ ] Click count from login to primary task is ≤ 3 for each persona `Krug`
-- [ ] If Portal USED: every portal page specced in table with OM pattern `Mat`
+- [ ] If Portal USED: every portal page specced in table with OM pattern `Cagan`
 - [ ] If Portal USED: real-time events mapped per page that uses SSE `Piotr`
 - [ ] If Portal USED: empty states + stage gates defined `Krug`
 
@@ -308,7 +308,7 @@ Each gap is measured in **atomic commits** — one self-contained, testable incr
 Piotr saves detailed commit plans to `apps/<app>/app-spec/piotr-notes/commits-WF<N>.md`.
 
 #### Checklist
-- [ ] Every workflow step scored in atomic commits `Mat`
+- [ ] Every workflow step scored in atomic commits `Cagan`
 - [ ] Piotr checkpoint: workflow-to-OM mapping verified — no module missed, no overengineering, commit plans saved `Piotr`
 
 ---
@@ -350,12 +350,12 @@ Piotr saves detailed commit plans to `apps/<app>/app-spec/piotr-notes/commits-WF
 - [ ] Proposed official modules have clear boundary — single responsibility, no app-specific domain logic leaked in `Piotr`
 - [ ] App module count justified — if >2 app modules, explain why they can't be one `Piotr`
 - [ ] Extension points to official modules documented — same UMES patterns as core (interceptors, widget injection, enrichers, DI overrides) `Piotr`
-- [ ] No direct modification of core or official module code — extend only via UMES, or FLAG as upstream PR `Mat + Piotr`
+- [ ] No direct modification of core or official module code — extend only via UMES, or FLAG as upstream PR `Cagan + Piotr`
 - [ ] Module boundaries align with bounded context boundaries — if two modules share invariants or domain events that must be transactionally consistent, they should be one module `Vernon`
 
 ---
 
-## 5. User Stories `Mat`
+## 5. User Stories `Cagan`
 
 > Each story traces to a workflow step. Story = atomic action by one persona with measurable success.
 
@@ -414,12 +414,12 @@ Success:
 Piotr saves detailed commit plans to `apps/<app>/app-spec/piotr-notes/commits-US-<N>.md`.
 
 #### Checklist
-- [ ] Every story mapped to specific OM module/mechanism with atomic commit estimate `Mat`
+- [ ] Every story mapped to specific OM module/mechanism with atomic commit estimate `Cagan`
 - [ ] Piotr checkpoint: story-to-OM mapping verified — simplest solution for each story, commit plans saved `Piotr`
 
 ---
 
-## 7. Phasing & Rollout `Mat`
+## 7. Phasing & Rollout `Cagan`
 
 > Phasing logic: High business priority + Low gap = ship first.
 > Every phase must deliver measurable business value. If you can't state the ROI — the phase is artificial. Merge it or cut it.
@@ -437,13 +437,13 @@ Piotr saves detailed commit plans to `apps/<app>/app-spec/piotr-notes/commits-US
 **Total: [N] atomic commits**
 **Workaround:** [if any high-gap blocker is worked around]
 
-**Acceptance criteria:** `Vernon writes, Mat challenges`
+**Acceptance criteria:** `Vernon writes, Cagan challenges`
 
 > **Role reversal.** Vernon (DDD) writes the acceptance criteria — domain invariants that must hold,
-> aggregate consistency, event completeness, data integrity. Mat (business) challenges them —
+> aggregate consistency, event completeness, data integrity. Cagan (business) challenges them —
 > "is this actually needed for the business to work at this phase?" If Vernon's criterion is
-> over-engineered for the current phase, Mat cuts it or defers it. If it's essential for domain
-> integrity, Mat accepts it. The one who usually critiques now defends; the one who builds now pushes back.
+> over-engineered for the current phase, Cagan cuts it or defers it. If it's essential for domain
+> integrity, Cagan accepts it. The one who usually critiques now defends; the one who builds now pushes back.
 
 **Domain criteria** `Vernon`:
 - [ ] [Invariant that must hold after this phase — e.g., "every WIP-stamped deal has exactly one immutable timestamp"]
@@ -451,7 +451,7 @@ Piotr saves detailed commit plans to `apps/<app>/app-spec/piotr-notes/commits-US
 - [ ] [Event completeness — e.g., "AgencyTierChanged published on every tier approval"]
 - [ ] [Data integrity — e.g., "WIC import for same org+month archives previous version"]
 
-**Business criteria** `Mat`:
+**Business criteria** `Cagan`:
 - [ ] [Testable action the primary persona can perform end-to-end]
 - [ ] [Testable action another persona can perform]
 - [ ] ...
@@ -466,7 +466,7 @@ Piotr saves detailed commit plans to `apps/<app>/app-spec/piotr-notes/commits-US
 - ...
 - **Copy test:** [If someone copies this phase's code, what do they learn about building on OM?]
 
-**Mat's challenges to Vernon's criteria:** [If Mat pushed back on any domain criterion — what was cut/deferred and why. If all accepted, state "all accepted."]
+**Cagan's challenges to Vernon's criteria:** [If Cagan pushed back on any domain criterion — what was cut/deferred and why. If all accepted, state "all accepted."]
 
 [Repeat per phase]
 
@@ -486,14 +486,14 @@ Phase 2: [name]    [N] commits    [which workflows]
 - [ ] Each phase delivers complete, usable increment — no half-done workflows
 - [ ] Workarounds documented for high-gap blockers (gap >3)
 - [ ] Total atomic commits estimated per phase `Piotr`
-- [ ] Acceptance criteria per phase: Vernon wrote domain criteria, Mat wrote business criteria `Vernon + Mat`
-- [ ] Mat challenged Vernon's criteria — over-engineered criteria cut or deferred, essential ones accepted `Mat`
+- [ ] Acceptance criteria per phase: Vernon wrote domain criteria, Cagan wrote business criteria `Vernon + Cagan`
+- [ ] Cagan challenged Vernon's criteria — over-engineered criteria cut or deferred, essential ones accepted `Cagan`
 - [ ] Business value + ROI metric stated per phase — no artificial phases
 - [ ] No artificial phases — every phase delivers measurable business value. If ROI is unclear, merge with adjacent phase or cut.
 
 ---
 
-## 8. Cross-Spec Conflicts `Mat`
+## 8. Cross-Spec Conflicts `Cagan`
 
 | Conflict | Specs involved | Resolution |
 |----------|---------------|------------|
@@ -504,7 +504,7 @@ Phase 2: [name]    [N] commits    [which workflows]
 - [ ] Identity model consistent across specs
 - [ ] Terminology consistent — matches glossary
 - [ ] Shared entities owned by one spec — if two specs reference the same entity, one is the owner
-- [ ] Every entity in this table exists in §1.3 UL and is referenced by at least one user story — no phantom entities `Mat`
+- [ ] Every entity in this table exists in §1.3 UL and is referenced by at least one user story — no phantom entities `Cagan`
 - [ ] Every conflict has a resolution, not "TBD"
 
 ---
@@ -534,7 +534,7 @@ Phase 2: [name]    [N] commits    [which workflows]
 
 ---
 
-## 10. Open Questions `Mat`
+## 10. Open Questions `Cagan`
 
 | # | Question | Options | Impact | Owner | Status |
 |---|----------|---------|--------|-------|--------|
@@ -547,7 +547,7 @@ Phase 2: [name]    [N] commits    [which workflows]
 
 ---
 
-## Production Readiness `Mat`
+## Production Readiness `Cagan`
 
 > Assessed per implementation phase. Updated as phases ship.
 

@@ -137,9 +137,9 @@ Step 3: ...
 
 ## Challenger Mode
 
-Like Vernon challenges domain model, Krug challenges UI architecture. After Mat defines §3.5, Krug reviews it.
+Like Vernon challenges domain model, Krug challenges UI architecture. After Cagan defines §3.5, Krug reviews it.
 
-**Dispatch strategy:** One subagent per workflow (parallel). Each subagent walks one workflow end-to-end. Results consolidated by Mat. Cross-workflow transitions reviewed in a final pass after all workflow reviews return.
+**Dispatch strategy:** One subagent per workflow (parallel). Each subagent walks one workflow end-to-end. Results consolidated by Cagan. Cross-workflow transitions reviewed in a final pass after all workflow reviews return.
 
 ### Subagent prompt (one per workflow)
 
@@ -150,10 +150,10 @@ Each subagent receives:
 
 See `references/krug-prompt.md` for the full Krug usability review prompt.
 
-### How Mat responds
+### How Cagan responds
 - **BLOCKER** → fix immediately, update §3.5
 - **FRICTION** → fix if < 1 commit of work, otherwise add to Open Questions
 - **POLISH** → defer unless trivially fixable
 - **OK** → no action
 
-Krug does NOT get final say on what ships. Mat balances usability with delivery speed. If Krug says "add a wizard" and it's 3 commits of work, Mat can say "onboarding checklist widget is good enough for 15 agencies."
+Krug does NOT get final say on what ships. Cagan balances usability with delivery speed. If Krug says "add a wizard" and it's 3 commits of work, Cagan can say "onboarding checklist widget is good enough for 15 agencies."

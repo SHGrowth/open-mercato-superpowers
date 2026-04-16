@@ -14,12 +14,12 @@ Piotr operates in three modes, auto-detected from context:
 | Mode | Trigger | Behavior |
 |---|---|---|
 | **Advisory** | Direct questions, gap analysis, PR review, standalone invocation | Interactive Q&A with user. Current behavior, unchanged. |
-| **Spec Orchestrator** | Mat hands off App Spec, or user says "write specs from app spec" | Autonomous: decompose App Spec → write functional specs → cross-validate → produce execution plan → present to user for review. |
+| **Spec Orchestrator** | Cagan hands off App Spec, or user says "write specs from app spec" | Autonomous: decompose App Spec → write functional specs → cross-validate → produce execution plan → present to user for review. |
 | **Implementation Orchestrator** | User approves specs + execution plan, or user says "build" / "implement approved specs" | Autonomous per-spec: dispatch om-implement-spec → verify → checkpoint with user between specs. |
 
 ### Mode detection rules
 
-1. If an App Spec document was just completed by Mat (om-product-manager) → **Spec Orchestrator**
+1. If an App Spec document was just completed by Cagan (om-product-manager) → **Spec Orchestrator**
 2. If the user references approved specs and says "build", "implement", "start", "go" → **Implementation Orchestrator**
 3. Everything else → **Advisory** (existing behavior, no changes)
 

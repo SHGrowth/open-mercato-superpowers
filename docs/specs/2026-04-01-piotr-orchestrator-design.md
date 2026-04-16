@@ -5,7 +5,7 @@
 
 ## TLDR
 
-Redesign om-cto (Piotr) from an interactive advisory skill into an autonomous orchestrator that coordinates the full technical lifecycle after the product manager (Mat) finishes business discovery with the user. User only intervenes at 3 checkpoints: brainstorming with Mat, reviewing specs, and testing features on localhost.
+Redesign om-cto (Piotr) from an interactive advisory skill into an autonomous orchestrator that coordinates the full technical lifecycle after the product manager (Cagan) finishes business discovery with the user. User only intervenes at 3 checkpoints: brainstorming with Cagan, reviewing specs, and testing features on localhost.
 
 ## Problem
 
@@ -25,11 +25,11 @@ Evidence from Session 1 (2026-04-01): user had to say "follow om superpowers" tw
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│ Phase 1: BUSINESS DISCOVERY (Mat ↔ User)            │
+│ Phase 1: BUSINESS DISCOVERY (Cagan ↔ User)            │
 │ Interactive brainstorming                            │
 │ Output: App Spec (workflows, stories, criteria)      │
 └──────────────────────┬──────────────────────────────┘
-                       ↓ Mat hands off to Piotr
+                       ↓ Cagan hands off to Piotr
 ┌─────────────────────────────────────────────────────┐
 │ Phase 2: SPEC ORCHESTRATOR (Piotr, autonomous)      │
 │ Decompose → Write specs → Cross-validate → Plan     │
@@ -52,7 +52,7 @@ Evidence from Session 1 (2026-04-01): user had to say "follow om superpowers" tw
 
 | # | Checkpoint | Why human needed |
 |---|---|---|
-| 1 | Mat brainstorming | Business requirements need human judgment |
+| 1 | Cagan brainstorming | Business requirements need human judgment |
 | 2 | Review specs + execution plan | Final say on what gets built |
 | 3 | Test each feature on localhost | Real-world validation between specs |
 
@@ -63,17 +63,17 @@ Everything else is autonomous.
 | Mode | Trigger | User interaction | Output |
 |---|---|---|---|
 | **Advisory** (existing) | "does OM do X?", gap check, PR review | Interactive Q&A | Findings report |
-| **Spec Orchestrator** | Receives App Spec from Mat | Autonomous until specs ready | N specs + execution plan |
+| **Spec Orchestrator** | Receives App Spec from Cagan | Autonomous until specs ready | N specs + execution plan |
 | **Implementation Orchestrator** | User approves specs + plan | Autonomous per-spec, checkpoint between | Working features |
 
 Mode auto-detection:
-- Mat completes App Spec and hands off → **Spec Orchestrator**
+- Cagan completes App Spec and hands off → **Spec Orchestrator**
 - User approves specs and says "build" / "implement" → **Implementation Orchestrator**
 - Everything else → **Advisory** (current behavior, unchanged)
 
 ### Phase 2: Spec Orchestrator (Detail)
 
-When Piotr receives an App Spec from Mat:
+When Piotr receives an App Spec from Cagan:
 
 **Step 1 — Decompose.** Read App Spec, identify independent deliverable features. Each becomes one spec. Order by dependencies (foundation first, features that depend on others later).
 
@@ -92,7 +92,7 @@ Each spec writer subagent receives:
 - Piotr's gap analysis findings (what exists, what to build, HOW to build it)
 - OM platform constraints from om-reference/
 
-The spec writer does NOT brainstorm with the user — it has all the input it needs from Mat's App Spec and Piotr's gap analysis.
+The spec writer does NOT brainstorm with the user — it has all the input it needs from Cagan's App Spec and Piotr's gap analysis.
 
 **Step 3 — Cross-validate.** After all specs are written:
 - Check for contradictions (same entity defined differently in two specs)
@@ -190,7 +190,7 @@ om-implement-spec auto-invokes skill handoffs as needed:
 
 | Decision | Why |
 |---|---|
-| Business requirements (Mat ↔ User) | Only the user knows what the business needs |
+| Business requirements (Cagan ↔ User) | Only the user knows what the business needs |
 | Approve specs + execution plan | User owns what gets built |
 | Test features on localhost | Real-world validation agents can't do |
 | Report bugs during testing | User sees what the agent can't |
@@ -208,6 +208,6 @@ om-implement-spec auto-invokes skill handoffs as needed:
 
 ## Non-Goals
 
-- Changing Mat's interactive brainstorming flow — that stays human-in-the-loop
+- Changing Cagan's interactive brainstorming flow — that stays human-in-the-loop
 - Removing the ability to use skills individually — advisory mode and standalone invocation unchanged
 - Full autopilot with zero checkpoints — user always reviews specs and tests features

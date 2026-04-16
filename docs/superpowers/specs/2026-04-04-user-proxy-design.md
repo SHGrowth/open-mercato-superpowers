@@ -115,7 +115,7 @@ Every skill that presents questions, findings, or decisions to the user:
 
 | Skill | Current user touchpoint | Proxy gate location |
 |-------|------------------------|---------------------|
-| om-product-manager (Mat) | Review findings triage | Before presenting findings to user |
+| om-product-manager (Cagan) | Review findings triage | Before presenting findings to user |
 | om-cto Spec Orchestrator | Detail questions during spec writing | Before asking user mid-spec (approval gate itself stays with user) |
 | om-cto Implementation Orchestrator | Feedback triage (code bug / spec gap / business change) | Before presenting triage to user (per-spec go/no-go stays with user) |
 | om-pre-implement-spec | Proposed spec changes | Before presenting the report |
@@ -125,7 +125,7 @@ Every skill that presents questions, findings, or decisions to the user:
 ### What the proxy does NOT intercept
 
 - **Hard approval gates** — "specs approved, start implementing?" stays with the user. The proxy resolves detail questions, not go/no-go calls on entire phases.
-- **Mat's Phase 0 business discovery** — "Who pays? What's the flywheel?" are exploratory questions that build the domain model. The proxy has nothing to learn from yet.
+- **Cagan's Phase 0 business discovery** — "Who pays? What's the flywheel?" are exploratory questions that build the domain model. The proxy has nothing to learn from yet.
 - **User testing on localhost** — "does this work?" is empirical, not a judgment call.
 
 **Rule:** The proxy intercepts **findings, analysis triage, and detail decisions**. It does NOT intercept **phase gates, discovery questions, or empirical verification**.

@@ -43,12 +43,12 @@ Piotr operates in three modes, auto-detected from context:
 | Mode | Trigger | Behavior |
 |---|---|---|
 | **Advisory** | Direct questions, gap analysis, PR review, standalone invocation | Interactive Q&A with user. Current behavior, unchanged. |
-| **Spec Orchestrator** | Mat hands off App Spec, or user says "write specs from app spec" | Autonomous: decompose App Spec → write functional specs → cross-validate → produce execution plan → present to user for review. |
+| **Spec Orchestrator** | Cagan hands off App Spec, or user says "write specs from app spec" | Autonomous: decompose App Spec → write functional specs → cross-validate → produce execution plan → present to user for review. |
 | **Implementation Orchestrator** | User approves specs + execution plan, or user says "build" / "implement approved specs" | Autonomous per-spec: dispatch om-implement-spec → verify → checkpoint with user between specs. |
 
 ### Mode detection rules
 
-1. If an App Spec document was just completed by Mat (om-product-manager) → **Spec Orchestrator**
+1. If an App Spec document was just completed by Cagan (om-product-manager) → **Spec Orchestrator**
 2. If the user references approved specs and says "build", "implement", "start", "go" → **Implementation Orchestrator**
 3. Everything else → **Advisory** (existing behavior, no changes)
 
@@ -82,7 +82,7 @@ Find the `## Flow` section — the new Spec Orchestrator section goes before it.
 ```markdown
 ## Spec Orchestrator Mode
 
-When Piotr receives an App Spec from Mat (or the user provides one), he runs this flow autonomously. No user interaction until Step 5.
+When Piotr receives an App Spec from Cagan (or the user provides one), he runs this flow autonomously. No user interaction until Step 5.
 
 ### Step 1 — Decompose
 
@@ -99,7 +99,7 @@ For each feature in the decomposition, dispatch subagents in parallel where inde
 
 **Per-feature subagent sequence:**
 1. **Gap analysis** (om-cto advisory logic, Phase 1-4): What exists in OM? What's the gap? Extension vs core? Which UMES mechanism? Piotr decides — does NOT ask the user.
-2. **Spec writing** (om-spec-writing in subagent mode): Produce `SPEC-YYYY-MM-DD-{slug}.md`. Receives the App Spec section + Piotr's gap analysis as input. Does NOT use Open Questions gate — all business questions were answered by Mat.
+2. **Spec writing** (om-spec-writing in subagent mode): Produce `SPEC-YYYY-MM-DD-{slug}.md`. Receives the App Spec section + Piotr's gap analysis as input. Does NOT use Open Questions gate — all business questions were answered by Cagan.
 3. **Validation** (om-pre-implement-spec): Check BC violations, risks, gaps. Report findings back to Piotr.
 4. **Domain-specific validation** (as needed):
    - om-data-model-design: if spec involves entities, validate design
@@ -281,7 +281,7 @@ With:
 
 ```
 Advisory:     user question → piotr investigates → findings report
-Spec:         mat hands off app spec → piotr decomposes → writes specs → cross-validates → user reviews → approved
+Spec:         cagan hands off app spec → piotr decomposes → writes specs → cross-validates → user reviews → approved
 Implement:    user approves → piotr dispatches per-spec → implement → test → review → user tests on localhost → next spec
 Standalone:   piotr → code-review (unchanged)
 ```
@@ -311,12 +311,12 @@ Read lines 340-385 to confirm exact text to replace.
 
 Replace the final line (after the flow graph):
 ```markdown
-Mat delivers the right thing. Vernon challenges the domain model. Piotr ensures it's mapped right. All three agree before any code.
+Cagan delivers the right thing. Vernon challenges the domain model. Piotr ensures it's mapped right. All three agree before any code.
 ```
 
 With:
 ```markdown
-Mat delivers the right thing. Vernon challenges the domain model. Piotr ensures it's mapped right. All three agree before any code.
+Cagan delivers the right thing. Vernon challenges the domain model. Piotr ensures it's mapped right. All three agree before any code.
 
 ## Handoff to Piotr
 
@@ -329,7 +329,7 @@ After Phase 5 (Handoff) is complete and the App Spec is finalized:
 4. Produce an execution plan
 5. Present specs + plan to the user for review
 
-Do NOT invoke writing-plans or brainstorming after Mat. The next step is always Piotr's Spec Orchestrator. Mat's job is done when the App Spec is complete.
+Do NOT invoke writing-plans or brainstorming after Cagan. The next step is always Piotr's Spec Orchestrator. Cagan's job is done when the App Spec is complete.
 ```
 
 - [ ] **Step 3: Also update the flow graph terminal node**
@@ -446,7 +446,7 @@ If this skill was dispatched by Piotr (om-cto Spec Orchestrator), it receives:
 - Piotr's gap analysis (what exists, what to build, technical approach)
 
 **When dispatched by Piotr:**
-- Skip the Open Questions gate — all business questions were answered by Mat during App Spec creation
+- Skip the Open Questions gate — all business questions were answered by Cagan during App Spec creation
 - Use the App Spec section as the requirements source (no interactive brainstorming)
 - Use Piotr's gap analysis to inform architecture and technical decisions
 - Include a `## Technical Approach` section in the output spec with Piotr's decisions
