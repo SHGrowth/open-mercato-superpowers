@@ -1,11 +1,24 @@
 ---
 name: om-data-model-design
-description: Design entities, relationships, and manage the migration lifecycle for Open Mercato apps. Use when planning a data model, designing entities, choosing relationship patterns, adding cross-module references, or managing database migrations. Use standalone or when dispatched by Piotr's implementation orchestrator for entity work. Triggers on "design entity", "data model", "add entity", "database schema", "migration", "relationship", "many-to-many", "junction table", "foreign key", "jsonb", "add column".
+description: Design entities, relationships, and manage the migration lifecycle. Use when planning a data model, designing entities, choosing relationship patterns, adding cross-module references, or managing database migrations. Triggers on "design entity", "data model", "add entity", "database schema", "migration", "relationship", "many-to-many", "junction table", "foreign key", "jsonb", "add column".
 ---
 
 # Data Model Design
 
 Design entities, relationships, and manage the migration lifecycle following Open Mercato conventions.
+
+## Table of Contents
+
+1. [Design Workflow](#1-design-workflow)
+2. [Entity Design](#2-entity-design)
+3. [Field Types](#3-field-types)
+4. [Relationship Patterns](#4-relationship-patterns)
+5. [Cross-Module References](#5-cross-module-references)
+6. [Migration Lifecycle](#6-migration-lifecycle)
+7. [Advanced Patterns](#7-advanced-patterns)
+8. [Anti-Patterns](#8-anti-patterns)
+
+---
 
 ## 1. Design Workflow
 
@@ -75,13 +88,180 @@ export class <Entity> {
 
 ## 3. Field Types
 
-See `references/entity-patterns.md` for the type selection guide, JSONB guidelines, enum patterns, and nullable field conventions.
+### Type Selection Guide
+
+| Data | MikroORM Type | PostgreSQL Type | Decorator |
+|------|--------------|-----------------|-----------|
+| Short text (name, title) | `varchar` | `varchar(255)` | `@Property({ type: 'varchar', length: 255 })` |
+| Long text (description, notes) | `text` | `text` | `@Property({ type: 'text' })` |
+| Integer | `int` | `integer` | `@Property({ type: 'int' })` |
+| Decimal (money, quantity) | `decimal` | `numeric(precision,scale)` | `@Property({ type: 'decimal', precision: 10, scale: 2 })` |
+| Boolean | `boolean` | `boolean` | `@Property({ type: 'boolean', default: false })` |
+| UUID reference | `uuid` | `uuid` | `@Property({ type: 'uuid' })` |
+| Date only | `date` | `date` | `@Property({ type: 'date' })` |
+| Date + time | `timestamptz` | `timestamptz` | `@Property({ type: 'timestamptz' })` |
+| Enum | `varchar` | `varchar` | `@Enum({ items: () => MyEnum })` |
+| Flexible JSON | `jsonb` | `jsonb` | `@Property({ type: 'jsonb', nullable: true })` |
+| Array of strings | `jsonb` | `jsonb` | `@Property({ type: 'jsonb', default: '[]' })` |
+| Email | `varchar` | `varchar(320)` | `@Property({ type: 'varchar', length: 320 })` |
+| URL | `text` | `text` | `@Property({ type: 'text' })` |
+| Phone | `varchar` | `varchar(50)` | `@Property({ type: 'varchar', length: 50 })` |
+
+### When to Use JSONB
+
+Use `jsonb` when:
+- Schema is flexible/user-defined (custom field values, metadata, tags)
+- Data is read as a whole, not queried by individual fields
+- Nesting is natural (address objects, configuration maps)
+
+Avoid `jsonb` when:
+- You need to query, filter, or sort by individual fields — use proper columns
+- Data has a fixed, well-known schema — use columns for type safety
+- You need referential integrity — FKs can't point into JSONB
+
+### Enum Pattern
+
+```typescript
+export enum OrderStatus {
+  DRAFT = 'draft',
+  PENDING = 'pending',
+  CONFIRMED = 'confirmed',
+  SHIPPED = 'shipped',
+  DELIVERED = 'delivered',
+  CANCELLED = 'cancelled',
+}
+
+@Enum({ items: () => OrderStatus })
+status: OrderStatus = OrderStatus.DRAFT
+```
+
+### Nullable Fields
+
+```typescript
+// Optional field — nullable
+@Property({ type: 'varchar', length: 255, nullable: true })
+notes: string | null = null
+
+// Required field — not nullable (default)
+@Property({ type: 'varchar', length: 255 })
+name!: string  // Use ! for required fields set during creation
+```
 
 ---
 
 ## 4. Relationship Patterns
 
-See `references/entity-patterns.md` for all relationship patterns (1:N, N:M, 1:1, self-referencing) with code templates.
+### One-to-Many (Same Module)
+
+Parent entity has many children. Use `@ManyToOne` / `@OneToMany` decorators **only within the same module**.
+
+```typescript
+// Parent: Category
+@Entity({ tableName: 'categories' })
+export class Category {
+  @PrimaryKey({ type: 'uuid' })
+  id: string = v4()
+
+  @Property({ type: 'varchar', length: 255 })
+  name!: string
+
+  @OneToMany(() => Product, product => product.category)
+  products = new Collection<Product>(this)
+  // ...standard columns
+}
+
+// Child: Product
+@Entity({ tableName: 'products' })
+export class Product {
+  @PrimaryKey({ type: 'uuid' })
+  id: string = v4()
+
+  @ManyToOne(() => Category)
+  category!: Category
+  // ...standard columns
+}
+```
+
+### Many-to-Many (Same Module)
+
+Use a junction (pivot) table.
+
+```typescript
+// Junction table entity
+@Entity({ tableName: 'product_tags' })
+export class ProductTag {
+  @PrimaryKey({ type: 'uuid' })
+  id: string = v4()
+
+  @Index()
+  @Property({ type: 'uuid' })
+  product_id!: string
+
+  @Index()
+  @Property({ type: 'uuid' })
+  tag_id!: string
+
+  @Index()
+  @Property({ type: 'uuid' })
+  organization_id!: string
+
+  @Index()
+  @Property({ type: 'uuid' })
+  tenant_id!: string
+
+  @Property({ type: 'timestamptz' })
+  created_at: Date = new Date()
+}
+```
+
+**Junction table rules**:
+- Always include `organization_id` and `tenant_id`
+- Index both FK columns
+- Include `created_at` for audit trail
+- Add extra columns if the relationship has attributes (e.g., `quantity`, `sort_order`)
+
+### One-to-One (Same Module)
+
+```typescript
+@Entity({ tableName: 'user_profiles' })
+export class UserProfile {
+  @PrimaryKey({ type: 'uuid' })
+  id: string = v4()
+
+  @Index({ unique: true })
+  @Property({ type: 'uuid' })
+  user_id!: string  // FK to User entity
+
+  // Profile-specific fields
+  @Property({ type: 'text', nullable: true })
+  bio: string | null = null
+  // ...standard columns
+}
+```
+
+### Self-Referencing (Tree/Hierarchy)
+
+```typescript
+@Entity({ tableName: 'categories' })
+export class Category {
+  @PrimaryKey({ type: 'uuid' })
+  id: string = v4()
+
+  @Property({ type: 'uuid', nullable: true })
+  parent_id: string | null = null  // Self-reference
+
+  @Property({ type: 'varchar', length: 255 })
+  name!: string
+
+  // Optional: materialized path for efficient tree queries
+  @Property({ type: 'text', default: '' })
+  path: string = ''  // e.g., '/root-id/parent-id/this-id'
+
+  @Property({ type: 'int', default: 0 })
+  depth: number = 0
+  // ...standard columns
+}
+```
 
 ---
 
@@ -191,7 +371,109 @@ Don't remove columns in a single step. Instead:
 
 ## 7. Advanced Patterns
 
-See `references/entity-patterns.md` for polymorphic references, ordered collections, soft delete, and audit/history table patterns.
+### Polymorphic References
+
+When an entity can reference different types:
+
+```typescript
+@Entity({ tableName: 'comments' })
+export class Comment {
+  @PrimaryKey({ type: 'uuid' })
+  id: string = v4()
+
+  // Polymorphic reference
+  @Index()
+  @Property({ type: 'varchar', length: 100 })
+  target_type!: string  // 'tickets.ticket', 'orders.order', etc.
+
+  @Index()
+  @Property({ type: 'uuid' })
+  target_id!: string  // UUID of the referenced entity
+
+  @Property({ type: 'text' })
+  body!: string
+  // ...standard columns
+}
+```
+
+### Ordered Collections
+
+When items have a user-defined order:
+
+```typescript
+@Entity({ tableName: 'checklist_items' })
+export class ChecklistItem {
+  @PrimaryKey({ type: 'uuid' })
+  id: string = v4()
+
+  @Index()
+  @Property({ type: 'uuid' })
+  checklist_id!: string
+
+  @Property({ type: 'int' })
+  sort_order!: number  // 0, 1, 2, 3...
+
+  @Property({ type: 'varchar', length: 255 })
+  title!: string
+  // ...standard columns
+}
+```
+
+### Soft Delete Pattern
+
+All entities already include `deleted_at`. To implement soft delete:
+
+```typescript
+// In API handlers or commands:
+entity.deleted_at = new Date()
+entity.is_active = false
+await em.flush()
+
+// In queries — filter out deleted records:
+const items = await em.find(Entity, {
+  organization_id: orgId,
+  deleted_at: null,  // Exclude soft-deleted
+})
+```
+
+### Audit/History Table
+
+For tracking changes to an entity:
+
+```typescript
+@Entity({ tableName: 'ticket_history' })
+export class TicketHistory {
+  @PrimaryKey({ type: 'uuid' })
+  id: string = v4()
+
+  @Index()
+  @Property({ type: 'uuid' })
+  ticket_id!: string
+
+  @Property({ type: 'uuid' })
+  changed_by!: string  // User who made the change
+
+  @Property({ type: 'varchar', length: 50 })
+  action!: string  // 'created', 'updated', 'status_changed'
+
+  @Property({ type: 'jsonb', nullable: true })
+  previous_values: Record<string, unknown> | null = null
+
+  @Property({ type: 'jsonb', nullable: true })
+  new_values: Record<string, unknown> | null = null
+
+  @Index()
+  @Property({ type: 'uuid' })
+  organization_id!: string
+
+  @Index()
+  @Property({ type: 'uuid' })
+  tenant_id!: string
+
+  @Property({ type: 'timestamptz' })
+  created_at: Date = new Date()
+}
+```
 
 ---
 
@@ -214,12 +496,15 @@ See `references/entity-patterns.md` for polymorphic references, ordered collecti
 
 ## Rules
 
-Follow all conventions from the relevant module AGENTS.md (loaded via Task Router). The rules below are specific to data model design:
-
+- **MUST** include `organization_id` and `tenant_id` on all tenant-scoped entities
+- **MUST** include standard columns (`id`, `created_at`, `updated_at`, `deleted_at`, `is_active`)
+- **MUST** use UUID v4 for primary keys
+- **MUST** index all FK columns and `organization_id` / `tenant_id`
 - **MUST** run `yarn db:generate` after entity changes, never hand-write migrations
 - **MUST** review generated migration before applying
 - **MUST** use `nullable: true` with `= null` default for optional fields
 - **MUST** specify `length` on all `varchar` columns
+- **MUST NOT** use ORM relationship decorators across module boundaries
 - **MUST NOT** rename or drop columns in a single release
 - **MUST NOT** store sensitive data without encryption (use `findWithDecryption`)
 - Use `jsonb` for flexible/nested data, proper columns for queryable/sortable data

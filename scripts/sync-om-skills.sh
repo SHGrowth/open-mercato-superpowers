@@ -1,26 +1,25 @@
 #!/usr/bin/env bash
 # Sync OM platform skills + AGENTS.md files from open-mercato/open-mercato repo (develop branch)
 # Run this before each plugin release to update vendored skills and platform references.
+#
+# Skills are synced from two sources within the OM repo:
+#   1. .ai/skills/ — OM core skills (source of truth for skills that exist there)
+#   2. packages/create-app/agentic/shared/ai/skills/ — app-building skills only in create-app
+#
+# Synced skills keep the om- prefix for plugin namespacing but their content comes from upstream.
+# om-superpowers unique skills (om-cto, om-product-manager, om-ux, om-user-proxy, om-toolkit-review)
+# are NOT synced — they are maintained in this repo.
 
 set -euo pipefail
 
 REPO="open-mercato/open-mercato"
 BRANCH="develop"
-BASE_URL="https://raw.githubusercontent.com/${REPO}/${BRANCH}/.ai/skills"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SKILLS_DIR="${PLUGIN_ROOT}/skills"
 
-# Skills to sync: local-name:remote-name pairs
-SKILL_PAIRS=(
-  "om-code-review:code-review"
-  "om-implement-spec:implement-spec"
-  "om-spec-writing:spec-writing"
-  "om-pre-implement-spec:pre-implement-spec"
-  "om-integration-tests:integration-tests"
-  "om-integration-builder:integration-builder"
-  "om-backend-ui-design:backend-ui-design"
-)
+CORE_SKILLS_URL="https://raw.githubusercontent.com/${REPO}/${BRANCH}/.ai/skills"
+APP_SKILLS_URL="https://raw.githubusercontent.com/${REPO}/${BRANCH}/packages/create-app/agentic/shared/ai/skills"
 
 # Get current commit SHA for version tracking
 echo "Fetching latest commit SHA from ${REPO}@${BRANCH}..."
@@ -44,15 +43,17 @@ fetch_file() {
   return 0
 }
 
-for pair in "${SKILL_PAIRS[@]}"; do
-  local_name="${pair%%:*}"
-  remote_name="${pair##*:}"
-  dest_dir="${SKILLS_DIR}/${local_name}"
+sync_skill() {
+  local local_name="$1"
+  local remote_name="$2"
+  local base_url="$3"
+  local api_path="$4"
+  local dest_dir="${SKILLS_DIR}/${local_name}"
 
   echo "Syncing ${local_name} ← ${remote_name}..."
 
   # Fetch SKILL.md
-  fetch_file "${BASE_URL}/${remote_name}/SKILL.md" "${dest_dir}/SKILL.md" || continue
+  fetch_file "${base_url}/${remote_name}/SKILL.md" "${dest_dir}/SKILL.md" || return 1
 
   # Rename skill name field to om-prefixed version
   if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -62,17 +63,70 @@ for pair in "${SKILL_PAIRS[@]}"; do
   fi
 
   # Fetch references/ directory via GitHub API
-  refs_json=$(gh api "repos/${REPO}/contents/.ai/skills/${remote_name}/references" 2>/dev/null || echo "[]")
+  refs_json=$(gh api "repos/${REPO}/contents/${api_path}/${remote_name}/references?ref=${BRANCH}" 2>/dev/null || echo "[]")
 
   if [ "$refs_json" != "[]" ] && echo "$refs_json" | jq -e '.[0].name' &>/dev/null; then
     mkdir -p "${dest_dir}/references"
     echo "$refs_json" | jq -r '.[].name' | while read -r ref_file; do
       echo "  + references/${ref_file}"
-      fetch_file "${BASE_URL}/${remote_name}/references/${ref_file}" "${dest_dir}/references/${ref_file}"
+      fetch_file "${base_url}/${remote_name}/references/${ref_file}" "${dest_dir}/references/${ref_file}"
     done
   fi
 
   echo ""
+}
+
+# =====================================================================
+# Section 1: Sync skills from OM core .ai/skills/ (source of truth)
+# =====================================================================
+
+echo "=== Syncing from .ai/skills/ (OM core) ==="
+echo ""
+
+# Skills that exist in OM core .ai/skills/
+# Format: local-name:remote-name
+CORE_SKILL_PAIRS=(
+  # Base skills that Piotr dispatches via dispatch context
+  "om-implement-spec:implement-spec"
+  "om-code-review:code-review"
+  "om-spec-writing:spec-writing"
+  "om-pre-implement-spec:pre-implement-spec"
+  # Overlap skills synced as-is
+  "om-backend-ui-design:backend-ui-design"
+  "om-integration-builder:integration-builder"
+  "om-integration-tests:integration-tests"
+  # Auto-* skills (execution engine)
+  "om-auto-create-pr:auto-create-pr"
+  "om-auto-continue-pr:auto-continue-pr"
+  "om-auto-review-pr:auto-review-pr"
+)
+
+for pair in "${CORE_SKILL_PAIRS[@]}"; do
+  local_name="${pair%%:*}"
+  remote_name="${pair##*:}"
+  sync_skill "$local_name" "$remote_name" "$CORE_SKILLS_URL" ".ai/skills"
+done
+
+# =====================================================================
+# Section 2: Sync skills from create-app agentic (app-building skills)
+# =====================================================================
+
+echo "=== Syncing from create-app/agentic/ (app skills) ==="
+echo ""
+
+# Skills that only exist in create-mercato-app, not in .ai/skills/
+APP_SKILL_PAIRS=(
+  "om-data-model-design:data-model-design"
+  "om-eject-and-customize:eject-and-customize"
+  "om-module-scaffold:module-scaffold"
+  "om-system-extension:system-extension"
+  "om-troubleshooter:troubleshooter"
+)
+
+for pair in "${APP_SKILL_PAIRS[@]}"; do
+  local_name="${pair%%:*}"
+  remote_name="${pair##*:}"
+  sync_skill "$local_name" "$remote_name" "$APP_SKILLS_URL" "packages/create-app/agentic/shared/ai/skills"
 done
 
 # Save version info for skills
@@ -81,7 +135,7 @@ echo "Skills sync complete."
 echo ""
 
 # =====================================================================
-# Section 2: Sync AGENTS.md files from OM repo
+# Section 3: Sync AGENTS.md files from OM repo
 # =====================================================================
 
 AGENTS_BASE_URL="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
@@ -119,7 +173,7 @@ AGENTS_PATHS=(
   "packages/core/src/modules/workflows/AGENTS.md"
 )
 
-echo "Syncing AGENTS.md files → om-reference/..."
+echo "=== Syncing AGENTS.md files → om-reference/ ==="
 echo ""
 
 agents_ok=0
@@ -145,7 +199,7 @@ echo ""
 echo "${COMMIT_SHA}" > "${AGENTS_DIR}/.om-sync-version"
 
 # =====================================================================
-# Section 3: Referenced docs (specs, contracts)
+# Section 4: Referenced docs (specs, contracts)
 # =====================================================================
 
 echo "=== Syncing referenced docs ==="
@@ -172,4 +226,4 @@ echo ""
 echo "Next steps:"
 echo "  git diff skills/ om-reference/"
 echo "  git add skills/ om-reference/"
-echo "  git commit -m \"chore: sync OM skills + references from ${REPO}@${COMMIT_SHA:0:7}\""
+echo "  git commit -m \"chore: sync OM skills + references from ${REPO}@\${COMMIT_SHA:0:7}\""
