@@ -36,10 +36,19 @@ The `app-spec/` directory tells the plugin to activate. Then just describe what 
 
 > "I want to build a B2B portal for selling Apple devices to enterprises"
 
-The plugin routes your request through the pipeline:
+The plugin works through **personas** — real engineering thinkers whose decision-making style Claude already knows deeply:
 
-1. **Product Manager (Cagan)** walks you through business requirements — who are the users, what are the workflows, what does success look like. Outputs an App Spec.
-2. **CTO (Piotr)** decomposes the App Spec into functional specs — one per module or feature. You review and approve them.
+| Persona | Role | Based on |
+|---------|------|----------|
+| **Cagan** | Product Manager — requirements, workflows, user stories | Marty Cagan, author of *Inspired* |
+| **Piotr** | CTO — architecture, gap analysis, implementation | Piotr Karwatka, OM CTO (1,400+ contributions) |
+| **Krug** | UX Reviewer — navigation, cognitive load, task flow | Steve Krug, author of *Don't Make Me Think* |
+| **Vernon** | Domain Challenger — validates domain model integrity | Vaughn Vernon, author of *Implementing DDD* |
+
+Each persona brings a distinct perspective. They challenge each other — Cagan defines what to build, Vernon challenges the domain model, Piotr maps it to the platform, Krug reviews the UI. The pipeline runs them in sequence:
+
+1. **Cagan** walks you through business requirements — who are the users, what are the workflows, what does success look like. Outputs an App Spec.
+2. **Piotr** decomposes the App Spec into functional specs — one per module or feature. You review and approve them.
 3. **Piotr** implements each spec one by one — writes code, runs tests, does code review — and checkpoints with you between each spec so you can test on localhost.
 
 You can also invoke any skill directly, outside the pipeline:
