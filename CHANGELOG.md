@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.6.0
+
+### Added
+- Getting started guide for ideation-first workflow (no app needed to start)
+- Piotr decision library — real decision patterns extracted from code reviews and architecture choices
+- Personas table in Getting Started
+- `app-spec/` detection for ideation-first flow
+- Scaffold into same directory — app-spec stays in place
+
+### Changed
+- Restructured README for ideation-first flow
+- Recommend `create-mercato-app@develop` in getting started
+- Slimmed om-product-manager
+- Polished plugin metadata, added `.gitignore`
+
+### Fixed
+- Broken cross-skill references
+- Sync script path rewriting
+- Hook completeness
+- Misleading "activates all skills" wording in building section
+
 ## 1.5.0
 
 ### Added
