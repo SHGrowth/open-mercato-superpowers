@@ -1,7 +1,7 @@
 {
   "name": "om-superpowers",
-  "description": "16 skills for Open Mercato developers — spec writing, platform challenge, implementation, code review, testing, and debugging",
-  "version": "1.1.0",
+  "description": "20 skills for Open Mercato developers — spec writing, platform challenge, implementation, code review, testing, and debugging",
+  "version": "1.5.0",
   "author": {
     "name": "Open Mercato",
     "email": "dev@open-mercato.com"

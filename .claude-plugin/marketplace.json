@@ -1,14 +1,14 @@
 {
-  "name": "open-mercato-superpowers",
+  "name": "om-superpowers",
   "description": "Open Mercato developer skills marketplace",
   "owner": {
     "name": "Open Mercato"
   },
   "plugins": [
     {
-      "name": "open-mercato-superpowers",
-      "description": "Skills for Open Mercato developers: spec writing, platform challenge, implementation, code review, and testing",
-      "version": "1.0.0",
+      "name": "om-superpowers",
+      "description": "20 skills for Open Mercato developers: spec writing, platform challenge, implementation, code review, and testing",
+      "version": "1.5.0",
       "source": "./",
       "author": {
         "name": "Open Mercato"
