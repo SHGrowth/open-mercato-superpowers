@@ -78,7 +78,7 @@ rm -rf .ai/skills/
 
 > This cleanup step will no longer be needed once [open-mercato/open-mercato#1562](https://github.com/open-mercato/open-mercato/pull/1562) is merged.
 
-Start Claude Code in the app directory — the plugin auto-detects `@open-mercato/` in `package.json` and activates all skills.
+Start Claude Code in the app directory. If you already have an `app-spec/` from the ideation phase, copy it into the app so the pipeline continues where you left off.
 
 ### Codex CLI
 
