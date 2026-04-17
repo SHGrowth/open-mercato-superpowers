@@ -1,6 +1,6 @@
 {
   "name": "om-superpowers",
-  "description": "20 skills for Open Mercato developers — spec writing, platform challenge, implementation, code review, testing, and debugging",
+  "description": "Claude Code plugin for Open Mercato developers — 20 skills covering the full OM lifecycle",
   "version": "1.5.0",
   "author": {
     "name": "Open Mercato",

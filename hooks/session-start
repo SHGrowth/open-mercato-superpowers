@@ -58,8 +58,13 @@ These do NOT skip the pipeline — they are support tools:
 - **om-cto Advisory mode** — "does OM already do X?", architecture questions, gap analysis
 - **om-troubleshooter** — diagnose errors, 404s, migration issues
 - **om-ux (Krug)** — UI architecture review (also invoked during Mat's §3.5)
+- **om-system-extension** — extend core modules via UMES (enrichers, widgets, interceptors)
+- **om-data-model-design** — entity design, relationships, migration lifecycle
+- **om-backend-ui-design** — backend UI pages within OM component library
+- **om-eject-and-customize** — safe module ejection when UMES isn't enough
 - **om-integration-tests** — run existing test suites
 - **om-code-review** — review a PR or diff (standalone)
+- **om-toolkit-review** — audit skill corpus for context waste and structural issues
 
 ### Rules
 

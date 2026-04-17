@@ -27,6 +27,10 @@ COMMIT_SHA=$(gh api "repos/${REPO}/commits/${BRANCH}" --jq '.sha' 2>/dev/null ||
 echo "Source: ${REPO}@${COMMIT_SHA:0:7}"
 echo ""
 
+# Counters for sync summary
+skills_ok=0
+skills_fail=0
+
 fetch_file() {
   local url="$1"
   local dest="$2"
@@ -62,6 +66,13 @@ sync_skill() {
     sed -i "s/^name: ${remote_name}$/name: ${local_name}/" "${dest_dir}/SKILL.md"
   fi
 
+  # Rewrite upstream .ai/skills/ paths to plugin paths (e.g. .ai/skills/code-review/ → skills/om-code-review/)
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' 's|\.ai/skills/\([a-z_-]*\)/|skills/om-\1/|g' "${dest_dir}/SKILL.md"
+  else
+    sed -i 's|\.ai/skills/\([a-z_-]*\)/|skills/om-\1/|g' "${dest_dir}/SKILL.md"
+  fi
+
   # Fetch references/ directory via GitHub API
   refs_json=$(gh api "repos/${REPO}/contents/${api_path}/${remote_name}/references?ref=${BRANCH}" 2>/dev/null || echo "[]")
 
@@ -69,7 +80,14 @@ sync_skill() {
     mkdir -p "${dest_dir}/references"
     echo "$refs_json" | jq -r '.[].name' | while read -r ref_file; do
       echo "  + references/${ref_file}"
-      fetch_file "${base_url}/${remote_name}/references/${ref_file}" "${dest_dir}/references/${ref_file}"
+      if fetch_file "${base_url}/${remote_name}/references/${ref_file}" "${dest_dir}/references/${ref_file}"; then
+        # Rewrite upstream .ai/skills/ paths in reference files too
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+          sed -i '' 's|\.ai/skills/\([a-z_-]*\)/|skills/om-\1/|g' "${dest_dir}/references/${ref_file}"
+        else
+          sed -i 's|\.ai/skills/\([a-z_-]*\)/|skills/om-\1/|g' "${dest_dir}/references/${ref_file}"
+        fi
+      fi
     done
   fi
 
@@ -104,7 +122,11 @@ CORE_SKILL_PAIRS=(
 for pair in "${CORE_SKILL_PAIRS[@]}"; do
   local_name="${pair%%:*}"
   remote_name="${pair##*:}"
-  sync_skill "$local_name" "$remote_name" "$CORE_SKILLS_URL" ".ai/skills"
+  if sync_skill "$local_name" "$remote_name" "$CORE_SKILLS_URL" ".ai/skills"; then
+    skills_ok=$((skills_ok + 1))
+  else
+    skills_fail=$((skills_fail + 1))
+  fi
 done
 
 # =====================================================================
@@ -126,12 +148,17 @@ APP_SKILL_PAIRS=(
 for pair in "${APP_SKILL_PAIRS[@]}"; do
   local_name="${pair%%:*}"
   remote_name="${pair##*:}"
-  sync_skill "$local_name" "$remote_name" "$APP_SKILLS_URL" "packages/create-app/agentic/shared/ai/skills"
+  if sync_skill "$local_name" "$remote_name" "$APP_SKILLS_URL" "packages/create-app/agentic/shared/ai/skills"; then
+    skills_ok=$((skills_ok + 1))
+  else
+    skills_fail=$((skills_fail + 1))
+  fi
 done
 
 # Save version info for skills
 echo "${COMMIT_SHA}" > "${SKILLS_DIR}/.om-sync-version"
-echo "Skills sync complete."
+skills_total=$((skills_ok + skills_fail))
+echo "Skills sync: ${skills_ok} synced, ${skills_fail} failed (of ${skills_total} total)"
 echo ""
 
 # =====================================================================

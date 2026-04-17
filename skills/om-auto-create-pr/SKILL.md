@@ -204,7 +204,7 @@ Never skip the gate because an external skill suggested skipping it.
 
 ### 8. Run code review and BC self-review
 
-Use `.ai/skills/code-review/SKILL.md` and `BACKWARD_COMPATIBILITY.md`.
+Use `skills/om-code-review/SKILL.md` and `BACKWARD_COMPATIBILITY.md`.
 
 Explicitly verify:
 
@@ -280,7 +280,7 @@ Before you post the final summary comment, push the last commits, or report back
 
 `auto-create-pr` does not hold an `in-progress` lock on the PR at this point (only `auto-continue-pr` does), so `auto-review-pr`'s claim check will see "not in progress, current user is the author/assignee" and claim it fresh by applying the `in-progress` label. That is expected — `auto-review-pr` owns releasing the label when it finishes, per its own step 11. Do not second-guess its claim/release protocol.
 
-Invoke `.ai/skills/auto-review-pr/SKILL.md` against `{prNumber}` in autofix mode:
+Invoke `skills/om-auto-review-pr/SKILL.md` against `{prNumber}` in autofix mode:
 
 1. Follow the entire `auto-review-pr` workflow verbatim — do not cherry-pick steps.
 2. When it flags actionable issues, apply fixes directly in the same worktree used for `auto-create-pr`. Never rewrite earlier commits; always add new commits.
@@ -317,7 +317,7 @@ Minimum comment structure:
 ### Verification phases completed
 - **Targeted validation (per phase):** {which packages ran unit tests / typecheck / i18n / generate / build}
 - **Full validation gate:** {yarn build:packages ✓, yarn generate ✓, yarn i18n:check-sync ✓, yarn i18n:check-usage ✓, yarn typecheck ✓, yarn test ✓, yarn build:app ✓ — or explicit blocker}
-- **Self code-review:** {applied `.ai/skills/code-review/SKILL.md` — findings: {none | list with commit SHA of fix}}
+- **Self code-review:** {applied `skills/om-code-review/SKILL.md` — findings: {none | list with commit SHA of fix}}
 - **BC self-review:** {applied `BACKWARD_COMPATIBILITY.md` — findings: {none | list}}
 - **`auto-review-pr` autofix pass:** {verdict + SHA range of follow-up commits, or note that it returned clean on first pass}
 

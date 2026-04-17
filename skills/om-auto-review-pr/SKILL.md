@@ -295,7 +295,7 @@ Record findings from the patterns below. These are mandatory findings, not optio
 
 ### 6. Run the full code-review skill inside the worktree
 
-Execute `.ai/skills/code-review/SKILL.md` in the isolated worktree.
+Execute `skills/om-code-review/SKILL.md` in the isolated worktree.
 
 Mandatory scope and gates:
 

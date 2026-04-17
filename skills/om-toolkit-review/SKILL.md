@@ -64,7 +64,7 @@ OM platform conventions live in `om-reference/AGENTS.md` and per-module AGENTS.m
 
 **Verdict:**
 - Rule in 1 skill + upstream AGENTS.md → **redundant**, remove from skill
-- Rule in 3+ skills but NOT in upstream → candidate for a shared `references/om-coding-rules.md`
+- Rule in 3+ skills but NOT in upstream → candidate for a shared `references/om-coding-rules.md` (create when needed)
 - Rule in 1 skill only → fine, leave it
 
 ### 3. Template-to-Logic Ratio
@@ -75,7 +75,7 @@ Skills should be decision logic + workflow. Code templates belong in `references
 - Lines of TypeScript/TSX code blocks
 - Lines of decision logic, workflow steps, rules
 
-**Threshold:** If code templates exceed 50% of SKILL.md, they should move to `references/templates.md`.
+**Threshold:** If code templates exceed 50% of SKILL.md, they should move to a skill-specific `references/templates.md` (create per skill when needed).
 
 **Check which skills follow the right pattern:**
 - om-cto: lean task router in SKILL.md, mode workflows in references — **ideal pattern**

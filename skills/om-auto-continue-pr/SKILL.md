@@ -148,7 +148,7 @@ Rules:
 
 ### 4. Resume execution
 
-From the resume point forward, apply the **same phase-by-phase loop** documented in `.ai/skills/auto-create-pr/SKILL.md`:
+From the resume point forward, apply the **same phase-by-phase loop** documented in `skills/om-auto-create-pr/SKILL.md`:
 
 1. Implement only the steps of the current Phase.
 2. Add or update tests for anything that changed behavior.
@@ -180,7 +180,7 @@ Never skip the gate because an external skill recorded in the plan suggested ski
 
 ### 6. Code review and BC self-review
 
-Use `.ai/skills/code-review/SKILL.md` and `BACKWARD_COMPATIBILITY.md`. Verify:
+Use `skills/om-code-review/SKILL.md` and `BACKWARD_COMPATIBILITY.md`. Verify:
 
 - No frozen or stable contract surface was broken without the deprecation protocol.
 - No API response fields were removed.
@@ -200,7 +200,7 @@ Before you post the final summary comment, push the final changes, or flip the P
 # as re-entry without re-claiming.
 ```
 
-Invoke `.ai/skills/auto-review-pr/SKILL.md` against `{prNumber}` in autofix mode:
+Invoke `skills/om-auto-review-pr/SKILL.md` against `{prNumber}` in autofix mode:
 
 1. Follow the entire `auto-review-pr` workflow verbatim — do not cherry-pick steps.
 2. Apply fixes directly in the same worktree used for this resume. Never rewrite earlier commits; always add new commits.
@@ -238,7 +238,7 @@ Minimum comment structure:
 ### Verification phases completed (this resume)
 - **Targeted validation (per phase):** {which packages ran unit tests / typecheck / i18n / generate / build}
 - **Full validation gate:** {yarn build:packages ✓, yarn generate ✓, yarn i18n:check-sync ✓, yarn i18n:check-usage ✓, yarn typecheck ✓, yarn test ✓, yarn build:app ✓ — or explicit blocker}
-- **Self code-review:** {applied `.ai/skills/code-review/SKILL.md` — findings: {none | list with commit SHA of fix}}
+- **Self code-review:** {applied `skills/om-code-review/SKILL.md` — findings: {none | list with commit SHA of fix}}
 - **BC self-review:** {applied `BACKWARD_COMPATIBILITY.md` — findings: {none | list}}
 - **`auto-review-pr` autofix pass:** {verdict + SHA range of follow-up commits, or note that it returned clean on first pass}
 

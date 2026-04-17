@@ -1,13 +1,13 @@
 {
   "name": "om-superpowers",
-  "description": "Open Mercato developer skills marketplace",
+  "description": "Claude Code plugin for Open Mercato developers — 20 skills covering the full OM lifecycle",
   "owner": {
     "name": "Open Mercato"
   },
   "plugins": [
     {
       "name": "om-superpowers",
-      "description": "20 skills for Open Mercato developers: spec writing, platform challenge, implementation, code review, and testing",
+      "description": "Claude Code plugin for Open Mercato developers — 20 skills covering the full OM lifecycle",
       "version": "1.5.0",
       "source": "./",
       "author": {
