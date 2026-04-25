@@ -1,6 +1,6 @@
 {
   "name": "om-superpowers",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Claude Code plugin for Open Mercato developers — 20 skills covering the full OM lifecycle",
   "license": "MIT",
   "repository": "https://github.com/SHGrowth/om-superpowers",
