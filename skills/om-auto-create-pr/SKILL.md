@@ -52,6 +52,49 @@ Decision tree:
 
 When an open PR already references the plan path, stop and tell the user to use `auto-continue-pr {prNumber}` instead.
 
+#### Duplicate-PR keyword check (added in v1.11.3)
+
+The claim check above only catches **slug/branch/plan-path collisions**. It does NOT catch the case where a different slug is created for the **same Spec or feature area** as an already-open PR. That gap caused a real incident: a session created `feat/prm-spec-04-wic-ingestion` and re-implemented WIC ingestion under "T4" labels while PR #4 (`feat/prm-t3-wic-ingestion`, "T3: PRM WIC ingestion (Spec #4)") was already open with the same scope. ~37 minutes of duplicate work.
+
+Before claiming the slug, run a keyword-overlap search against open PRs:
+
+```bash
+# Extract keywords from the brief — Spec numbers, module names, feature words.
+# Adjust the regex to your project's vocabulary (Spec/SPEC numbering, module names, etc.).
+KEYWORDS=$(echo "$BRIEF" | tr '[:upper:]' '[:lower:]' \
+  | grep -oE 'spec[[:space:]#]*[0-9]+|spec-?[0-9]+|t[0-9]+\b|wic|<other module-or-feature words specific to your project>' \
+  | sort -u | tr '\n' ' ' | sed 's/ $//')
+
+if [ -n "$KEYWORDS" ]; then
+  # `gh pr list --search "<keywords> in:title,body"` matches keywords across open-PR titles + bodies.
+  DUP_PRS=$(gh pr list --state open --search "$KEYWORDS in:title,body" \
+    --json number,title,headRefName \
+    --jq '.[] | "PR #\(.number) (\(.headRefName)): \(.title)"' 2>/dev/null)
+fi
+```
+
+Decision rule:
+
+- **`DUP_PRS` is empty** → no overlap detected. Proceed to the claim-check decision tree above.
+- **`DUP_PRS` has matches** → STOP. Use `AskUserQuestion`:
+
+  ```
+  Open PR(s) appear to overlap with this brief:
+
+  <DUP_PRS list>
+
+  Choose:
+  - "resume" → invoke /auto-continue-pr <PR#> for the matched PR (preferred when scope is the same)
+  - "parallel" → confirm parallel work is intentional (e.g., different Spec phase) and proceed with new slug
+  - "abort" → cancel this run
+  ```
+
+  Only proceed when the user explicitly says "parallel" or "abort". Default behavior on "resume" is to hand off to `auto-continue-pr` and stop the current `auto-create-pr` invocation.
+
+- **`gh` is unavailable / network fails** → log "duplicate check skipped: gh not available" and proceed. Do not block on tooling failure; the SessionStart hook (v1.11.3+) provides a complementary surfacing layer.
+
+This check is **hard enforcement at the create-pr layer**. The complementary SessionStart hook is **soft surfacing** — it shows the same data but does not block. Two layers because the patryk-standalone forensic showed the agent had `gh pr view 4` data and proceeded anyway. Surfacing alone wasn't enough.
+
 ### 1. Parse the brief and resolve external skills
 
 Capture, in plain English, the task's expected outcome, the affected modules/packages, and the rough scope.
@@ -405,6 +448,7 @@ When one or more `--skill-url` arguments are provided:
 ## Rules
 
 - Always start with an execution plan; never commit code before the plan lands on the chosen `feat/` or `fix/` branch.
+- Before claiming a slug, run the duplicate-PR keyword check in step 0 (added v1.11.3). If `gh pr list --search` matches an open PR, STOP and ask the user via `AskUserQuestion` whether to resume the existing PR via `auto-continue-pr` or proceed in parallel. Never silently fork against an open PR for the same Spec / module / feature.
 - Branches created by this skill must use `fix/` for corrective work or `feat/` for non-corrective work; never `codex/`.
 - Execution plan MUST include the Progress section in the exact format above so `auto-continue-pr` can parse it.
 - Always use an isolated worktree. Reuse the current linked worktree when already inside one. Never nest worktrees. Always clean up a worktree you created.

@@ -1,5 +1,60 @@
 # Changelog
 
+## 1.11.3
+
+### Added — duplicate-work prevention (two layers)
+
+**Triggered by patryk-standalone forensic.** A session ran "continue our auto development" and over 36 minutes created `feat/prm-spec-04-wic-ingestion` with 7 commits re-implementing WIC ingestion under "T4" labels — while PR #4 (`feat/prm-t3-wic-ingestion`, "T3: PRM WIC ingestion (Spec #4)") was already open with the exact same scope. The agent had run `gh pr view 4` and seen the existing tracking plan. It proceeded anyway. The local `.ai/runs/` scan only saw plans on the current branch — PR #4's plan lived on its own feature branch and was invisible to the v1.11.0 entry-point detection.
+
+This release closes both gaps with two complementary layers:
+
+#### Layer 1 — `hooks/session-start`: open-PR tracking-plan scan (soft surfacing)
+
+After the existing local `.ai/runs/` scan, the SessionStart hook now runs:
+
+```bash
+gh pr list --state open --json number,headRefName,body --limit 30 \
+  | python3 [extract Tracking plan: <path> from each PR body]
+```
+
+When matches are found, an "In-Flight Work Detected Elsewhere" block is injected into the agent's context with the canonical list of tracking plans backed by open PRs, plus a hard rule: if the incoming task overlaps, STOP and run `om-auto-continue-pr <PR#>` instead of forking. Tolerates `gh` unavailability (skips silently). One network call (~500ms), additive to the v1.11.0 entry-point block.
+
+#### Layer 2 — `om-auto-create-pr` step 0: keyword-overlap check (hard enforcement)
+
+Before claiming the slug, step 0 now extracts keywords from the brief (Spec numbers, module names, feature words) and runs `gh pr list --search "<keywords> in:title,body"`. If any open PR matches:
+
+- **STOP.** Surface the matched PR(s) to the user via `AskUserQuestion`.
+- Wait for explicit choice: `resume` (hand off to `auto-continue-pr`), `parallel` (confirm intentional fork), or `abort`.
+- Never silently fork against an open PR for the same Spec / module / feature.
+
+Hard enforcement because the patryk-standalone forensic showed the agent had `gh pr view 4` data and ignored it. Surfacing alone wasn't enough; the create-pr step needs to halt and ask.
+
+A new entry was added to the skill's Rules section locking in the discipline. `gh` unavailability falls back to the SessionStart hook's soft layer.
+
+### Why two layers, not one
+
+The SessionStart hook is informational — it makes the right answer obvious in the agent's context. It does NOT prevent the agent from creating a new plan if it judges (incorrectly) that the work is parallel. The auto-create-pr step 0 check makes the wrong answer expensive: the agent has to either match keywords differently (hard) or affirmatively confirm parallel work to the user. Two layers because a single soft surfacing layer empirically does not stop the failure.
+
+### Smoke-tested
+
+- Non-OM directory: hook returns `{}` ✓
+- OM project, no open PRs: no In-Flight block ✓
+- OM project with open PR carrying `Tracking plan:` line in body (verified against patryk-standalone): block correctly lists `PR #4 (feat/prm-t3-wic-ingestion): .ai/runs/2026-05-06-prm-t3-wic-ingestion.md` ✓
+
+### Honest limits
+
+- Hook scan caps at 30 open PRs (`--limit 30`) — repos with hundreds of open PRs may need the limit raised.
+- Keyword extraction in auto-create-pr step 0 uses a project-vocabulary regex that needs tuning per repo (Spec numbering format, module names). The example regex matches OM projects' patterns; downstream apps may need to adjust.
+- Both layers depend on PR bodies actually containing the `Tracking plan:` line — auto-create-pr writes this by default, but manually-created PRs do not. Cross-branch git scan (find `.ai/runs/` files in branches without an open PR) is deferred to a future release if the v1.11.3 baseline shows it's needed.
+- Network failure / no `gh` auth: both layers degrade gracefully (skip the scan, do not block the session). The local-only fallback is the v1.11.0 entry-point detection.
+
+### Files touched
+
+- `hooks/session-start` — added `open_pr_plans` scan via `gh pr list` + python regex extraction; conditional "In-Flight Work Detected Elsewhere" block appended to OM_CONTEXT when matches are found.
+- `skills/om-auto-create-pr/SKILL.md` — added "Duplicate-PR keyword check" sub-section in step 0 (~30 lines) + one new entry in the Rules section.
+- `.claude-plugin/plugin.json` + `.claude-plugin/marketplace.json` — version 1.11.3.
+- `CHANGELOG.md` — this entry.
+
 ## 1.11.2
 
 ### Fixed

@@ -70,6 +70,28 @@ if [ -d ".ai/specs" ]; then
   approved_specs_count=$( { grep -l -i -E "Status:[[:space:]]*(approved|ready|implemented)" .ai/specs/*.md 2>/dev/null || true; } | wc -l | tr -d ' ')
 fi
 
+# Open-PR tracking-plan scan (canonical "in-flight work elsewhere" surface).
+# The local .ai/runs/ scan above only sees plans on the current branch — plans on
+# other branches that have an open PR (e.g., PR #4's tracking plan that lives on
+# its own feature branch) escape that check. One `gh pr list` call surfaces them.
+# Failure mode tolerated: if gh is unavailable, no auth, or network down, scan is
+# skipped — hook still proceeds with local-only detection.
+open_pr_plans=""
+if command -v gh >/dev/null 2>&1; then
+  open_pr_plans=$(gh pr list --state open --json number,headRefName,body --limit 30 2>/dev/null | python3 -c "
+import sys, json, re
+try:
+    prs = json.load(sys.stdin)
+    for pr in prs:
+        body = pr.get('body','') or ''
+        m = re.search(r'Tracking plan:\s*(\S+)', body)
+        if m:
+            print(f\"PR #{pr['number']} ({pr['headRefName']}): {m.group(1)}\")
+except Exception:
+    pass
+" 2>/dev/null || true)
+fi
+
 # Build context message
 read -r -d '' OM_CONTEXT << 'CTXEOF' || true
 You are working in an Open Mercato project with OM Superpowers active.
@@ -221,6 +243,16 @@ elif [ "$has_app_spec" = true ]; then
 fi
 
 OM_CONTEXT="${OM_CONTEXT}${ENTRY_POINT}"
+
+# In-flight work elsewhere: open PRs with their own tracking plans.
+# This is additive to ENTRY_POINT — even when the local working dir has no
+# in-progress plan, OTHER branches may. v1.11.3 adds this scan after the
+# patryk-standalone session re-implemented WIC ingestion as a "T4" parallel
+# branch despite an open PR #4 already covering the same Spec.
+if [ -n "$open_pr_plans" ]; then
+  OPEN_PR_BLOCK=$(printf '\n\n## In-Flight Work Detected Elsewhere (open PRs with tracking plans)\n\nOther branches have execution plans backed by OPEN PRs. The local `.ai/runs/` directory only shows plans on the current branch — these are the canonical in-flight items across the repo:\n\n```\n%s\n```\n\n### Hard rule before starting any new work\n\nIf the incoming task overlaps with any PR above (same Spec number, same module, same feature area):\n\n1. **STOP.** Do NOT create a new branch + new plan + new PR for the same work.\n2. Run `gh pr view <PR#>` to confirm overlap.\n3. If overlapping → invoke `om-auto-continue-pr <PR#>` to resume on the existing branch.\n4. If genuinely parallel work (different Spec, same module is fine) → acknowledge the overlap explicitly to the user before proceeding.\n\nIf you cannot tell whether your task overlaps with an open PR'"'"'s plan, **ask the user** rather than guess. The cost of a 30-second clarification is far lower than 30+ minutes of duplicate work.\n' "$open_pr_plans")
+  OM_CONTEXT="${OM_CONTEXT}${OPEN_PR_BLOCK}"
+fi
 
 # Escape for JSON
 escape_for_json() {
