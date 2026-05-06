@@ -148,24 +148,16 @@ Rules:
 
 ### 4. Resume execution
 
-From the resume point forward, apply the **same step-by-step loop with per-commit gates** documented in `skills/om-auto-create-pr/SKILL.md` step 6. Cadence: **one commit per Progress Step** (atomic-commit unit, defined in `skills/_shared/per-commit-gates.md`).
+From the resume point forward, apply the **same phase-by-phase loop** documented in `skills/om-auto-create-pr/SKILL.md`:
 
-Before resuming, scan the plan for an existing `## Gate retries` section. If a Step has a non-zero retry count, that means a previous run hit gate failures on that Step. Reset the counter to 0 for any Step that no longer has a `needs-human` label active on the PR — re-entry implies a human cleared the block. Preserve the `## Gate log` history for audit.
-
-For each Step starting at the resume point:
-
-1. Implement only the current Step.
+1. Implement only the steps of the current Phase.
 2. Add or update tests for anything that changed behavior.
-3. Run **targeted Phase validation** for affected packages (unit tests, typecheck, i18n, `yarn generate` / `yarn build:packages` / `yarn db:generate` as relevant). This is the Phase-scoped layer above the per-commit gates.
+3. Run targeted validation for affected packages (unit tests, typecheck, i18n, `yarn generate` / `yarn build:packages` / `yarn db:generate` as relevant).
 4. Re-read the diff to remove scope creep.
 5. Grep changed non-test files for raw `em.findOne(` / `em.find(` and replace with `findOneWithDecryption` / `findWithDecryption`.
-6. **Stage** the diff for the current Step (`git add <files>`).
-7. **Run the per-commit gate sequence** from `skills/_shared/per-commit-gates.md` against the staged index (DS → unit → e2e-if-applicable → code-review-fast). All applicable gates must return clean.
-   - On failure: fix-forward up to 3 attempts per Step.
-   - On retry exhaustion: label the PR `needs-human`, post a comment naming the unresolved finding, append the failure to the plan's `## Gate log`, **stop**. Leave staged changes uncommitted for human inspection.
-8. **Commit only on all-clean** with a conventional-commit message scoped to this Step.
-9. Flip the Progress checkbox to `- [x]` and append the commit SHA. Append the matching `## Gate log` line for this Step. Commit as a dedicated `docs(runs): mark {slug} Phase N step X complete` commit.
-10. Push after every Phase so the remote always has the latest state.
+6. Commit with a conventional-commit message per Step or per Phase.
+7. Flip the Progress checkbox to `- [x]` and append the commit SHA. Commit that update as a dedicated `docs(runs): mark {slug} Phase N step X complete` commit.
+8. Push after every Phase so the remote always has the latest state.
 
 Do not alter work already completed in earlier commits. Do not reorder or rewrite history on the PR branch.
 
@@ -326,8 +318,6 @@ If the resume still did not reach `complete`, leave `Status: in-progress` in the
 - Resume from the first `- [ ]` line in the plan's Progress section; honor `--from` only when parsing fails.
 - Do not rewrite history on the PR branch. Do not alter earlier commits' behavior.
 - Every new code change MUST include tests; docs-only changes are exempt from the unit-test rule but still run relevant lint/checks.
-- Every code-bearing commit MUST pass the per-commit gate sequence (DS → unit → e2e-if-applicable → code-review-fast) on the staged index before `git commit`, per `skills/_shared/per-commit-gates.md`. Gates are pre-commit; on retry exhaustion (3 attempts per Step), label the PR `needs-human` and stop. Never silence a gate or weaken a rule to make it pass.
-- Cadence: one commit per Progress Step (atomic-commit unit), plus a dedicated commit for each Progress / Gate-log update.
 - Run the full validation gate and the code-review + BC self-review before flipping `Status: in-progress` to `Status: complete`.
 - After the resume's targeted/full validation passes, run the `auto-review-pr` skill against the PR in autofix mode and keep applying fixes (as new commits, never as history rewrites) until it returns a clean verdict or only non-actionable findings remain. Do this before posting the summary comment, pushing the final changes, and reporting back.
 - Every resume MUST end with a single comprehensive `gh pr comment` summary that includes: summary of changes (this resume only), external references honored, verification phases completed, how to verify (manual smoke test + spot-check areas + rollback plan), and a what-can-go-wrong risk analysis. Keep the section headings stable across runs.

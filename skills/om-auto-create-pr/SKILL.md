@@ -158,46 +158,29 @@ git push -u origin "$BRANCH"
 
 This guarantees that if anything later crashes, `auto-continue-pr` can find the plan via the remote branch.
 
-### 6. Implement step-by-step with per-commit gates
+### 6. Implement phase-by-phase with incremental commits
 
-Cadence: **one commit per Progress Step** (atomic-commit unit, defined in `skills/_shared/per-commit-gates.md`). Do not bundle multiple Steps into one commit. Do not split one Step across commits unless the plan explicitly does.
+For each Phase in the Implementation Plan:
 
-For each Step in the current Phase:
-
-1. Implement only the current Step. Do not pull work forward from later Steps or Phases.
+1. Implement only the steps in the current Phase. Do not pull work forward from later Phases.
 2. Add or update tests for anything that changed behavior:
    - Unit tests are mandatory for any code change.
    - Escalate to integration tests for risky flows, permissions, tenant isolation, workflows, or multi-module behavior.
-3. Run the **targeted Phase validation loop** for the affected packages (this is layered above the per-commit gates and stays Phase-scoped):
+3. Run the targeted validation loop for the affected packages:
    - Unit tests for changed packages.
    - Typecheck for changed packages.
    - `yarn i18n:check-sync` and `yarn i18n:check-usage` if locale files or user-facing strings changed.
    - `yarn generate`, `yarn build:packages`, and `yarn db:generate` when module structure, entities, or generated files changed.
 4. Re-read the diff and remove scope creep.
 5. Grep changed non-test files for raw `em.findOne(` / `em.find(` and replace with `findOneWithDecryption` / `findWithDecryption`.
-6. **Stage** the diff for the current Step:
-
-```bash
-git add <files>
-```
-
-7. **Run the per-commit gate sequence** from `skills/_shared/per-commit-gates.md` against the staged index. The three gates (DS → unit → e2e-if-applicable → code-review-fast) MUST all return clean (or "n/a" with logged reason) before this Step's commit lands.
-   - On gate failure: fix-forward, re-stage, re-run failing gate(s). Up to **3 attempts per Step**.
-   - On retry exhaustion: label the PR `needs-human`, post a comment naming the unresolved finding, append the failure to the plan's `## Gate log` section, **stop**. Leave the staged changes uncommitted so the human can inspect.
-   - Append a `## Gate log` entry per attempt as documented in the shared reference.
-8. **Commit only on all-clean** with a clear conventional-commit subject (one commit per Step):
-
-```bash
-git commit -m "<conventional subject scoped to this Step>"
-```
-
-9. Update the **Progress** section of the plan: flip `- [ ]` to `- [x]` for the completed Step and append the commit SHA. Append the matching `## Gate log` line for this Step (gate results + final commit SHA). Commit that update as a dedicated commit:
+6. Commit with a clear conventional-commit subject. Prefer one commit per Step when meaningful; otherwise one commit per Phase.
+7. Update the **Progress** section of the plan: flip `- [ ]` to `- [x]` for the completed Steps and append the commit SHA after each. Commit that update as a dedicated commit:
 
 ```bash
 git commit -m "docs(runs): mark ${SLUG} Phase N step X complete"
 ```
 
-10. Push after every Phase so `auto-continue-pr` always has the latest state on the remote.
+8. Push after every Phase so `auto-continue-pr` always has the latest state on the remote.
 
 ### 7. Full validation gate before opening the PR
 
@@ -410,8 +393,7 @@ When one or more `--skill-url` arguments are provided:
 - Execution plan MUST include the Progress section in the exact format above so `auto-continue-pr` can parse it.
 - Always use an isolated worktree. Reuse the current linked worktree when already inside one. Never nest worktrees. Always clean up a worktree you created.
 - Base branch is always `develop`.
-- Commit incrementally: **one commit per Progress Step** (atomic-commit unit per `skills/_shared/per-commit-gates.md`), plus a dedicated commit for each Progress / Gate-log update.
-- Every code-bearing commit MUST pass the per-commit gate sequence (DS → unit → e2e-if-applicable → code-review-fast) on the staged index before `git commit`. Gates are pre-commit; on retry exhaustion (3 attempts per Step), label the PR `needs-human` and stop. Never silence a gate or weaken a rule to make it pass.
+- Commit incrementally: one commit per Step when meaningful, otherwise one commit per Phase, plus a dedicated commit for each Progress update.
 - Every code change MUST include tests. Docs-only runs are exempt from the unit-test rule but still run whatever lint/check is relevant.
 - Run the full validation gate before opening the PR unless a real blocker prevents it; if blocked, document the blocker in the PR body and in the plan's Risks section.
 - Run the code-review and BC self-review before opening the PR.

@@ -1,30 +1,5 @@
 # Changelog
 
-## 1.9.0
-
-### Added
-- **Per-atomic-commit gates (Ralph Loop)** — every commit produced by `om-auto-create-pr` / `om-auto-continue-pr` now runs three gates on the staged index before `git commit`:
-  1. **Design system** — `om-ds-guardian` against the staged diff (when frontend touched).
-  2. **Tests** — `yarn test` for affected packages (always when code changed) + `om-integration-tests` scoped to touched modules (when UI applies).
-  3. **Code review (fast subset)** — `om-code-review` security + architecture pass on the staged diff.
-- `skills/_shared/per-commit-gates.md` — single shared reference loaded by both auto-* skills. Defines gate sequence, e2e applicability heuristic (frontend path globs + Playwright spec references), pre-commit semantics, retry budget (3 attempts per Step), `## Gate log` audit trail shape, and `## Gate retries` counter shape persisted in the plan file.
-- `docs/specs/2026-05-06-ralph-loop-per-commit-gates.md` — design rationale, two-phase delivery (gates first, loop wrapper deferred), and resolved Open Questions.
-
-### Changed
-- `skills/om-auto-create-pr/SKILL.md` — step 6 rewritten. Cadence shifted from "one commit per Step when meaningful, otherwise one commit per Phase" to **one commit per Progress Step (atomic-commit unit)**. Gate sequence runs against the staged index before each commit; on retry exhaustion (3 attempts), PR is labeled `needs-human` and the skill stops with changes left in the index for inspection. Rules section updated.
-- `skills/om-auto-continue-pr/SKILL.md` — step 4 mirrors the same per-commit gate flow on resume. Adds rule: when re-entering after `needs-human` is cleared, reset the Step's retry counter to 0; preserve the `## Gate log` history for audit.
-- `scripts/sync-om-skills.sh` — removed `om-auto-create-pr` and `om-auto-continue-pr` from `CORE_SKILL_PAIRS`. Daily CI sync no longer overwrites the gate edits. Header comment lists them under unique custom skills.
-- `README.md` — moved the auto-* pair from Synced to Custom in the table; brief blurb pointing at the shared reference and spec.
-
-### Migration notes (for plugin users)
-- The auto-create-pr / auto-continue-pr SKILL.md files diverged from upstream `open-mercato/open-mercato` on 2026-05-06. Future upstream changes to those skills will not auto-flow; merge selectively to preserve the gate edits.
-- The first commit on a resumed PR after `needs-human` may take longer than usual because retry counters reset and gates re-run from scratch.
-- Pre-commit gate failures leave staged changes uncommitted in the worktree — inspect via `git diff --cached` before clearing the block.
-- Update with `/plugins marketplace update om-superpowers`.
-
-### Origin
-- Session 2026-05-06 — discussion sparked by `snarktank/ralph` autonomous-loop pattern. Existing om-superpowers infrastructure (`om-cto/references/atomic-commits.md`, resumable `.ai/runs/<plan>.md` Progress checklists, `om-auto-continue-pr` re-entry) covers the loop primitives but did not enforce per-commit DS / e2e / code-review. Phase 1 promotes those checks from end-of-PR to per-atomic-commit. Phase 2 (a thin `om-auto-loop-pr` wrapper invokable inside Claude Code's `/loop` harness skill) is deferred until first-try gate pass rate is measured at ≥70% across 3 verification sessions, per the spec's own decision rule.
-
 ## 1.8.0
 
 ### Changed

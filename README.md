@@ -220,10 +220,8 @@ git add skills/ om-reference/ && git commit -m "chore: sync OM skills from upstr
 
 | Type | Skills | Maintained in |
 |------|--------|---------------|
-| **Custom** | om-product-manager, om-cto, om-ux, om-user-proxy, om-auto-create-pr, om-auto-continue-pr | This repo |
+| **Custom** | om-product-manager, om-cto, om-ux, om-user-proxy | This repo |
 | **Synced** | All others (top-level skills + demoted references — see `scripts/sync-om-skills.sh` for the full mapping including `DEMOTED_SKILL_PAIRS`) | [open-mercato/open-mercato](https://github.com/open-mercato/open-mercato) |
-
-The `om-auto-create-pr` and `om-auto-continue-pr` pair forked from upstream on 2026-05-06 to land **per-atomic-commit gates** (DS guardian + unit tests + e2e-when-applicable + code-review fast subset, with a 3-attempt retry budget). The shared gate sequence lives at `skills/_shared/per-commit-gates.md`. See `docs/specs/2026-05-06-ralph-loop-per-commit-gates.md` for the design rationale.
 
 ## Contributing
 
