@@ -26,6 +26,15 @@ if [ "$is_om_project" = false ]; then
   exit 0
 fi
 
+# Detect OM vanilla (path-based skill mandates are present alongside the plugin).
+# When .ai/skills/ exists, AGENTS.md likely routes tasks to .ai/skills/<name>/SKILL.md
+# entries — those mandates duplicate plugin om-* descriptions for synced skills.
+# The hybrid routing block below tells the agent how to resolve precedence.
+is_om_vanilla=false
+if [ -d ".ai/skills" ]; then
+  is_om_vanilla=true
+fi
+
 # Build context message
 read -r -d '' OM_CONTEXT << 'CTXEOF' || true
 You are working in an Open Mercato project with OM Superpowers active.
@@ -115,6 +124,44 @@ The proxy is invoked by other skills before presenting questions to the user. Yo
 - Once a skill workflow is started, follow it to completion — do not break out or skip steps.
 - Do not wait for the user to say "use superpowers" or "follow om skills" — they are always on.
 CTXEOF
+
+# Hybrid routing — only when OM vanilla is detected (path mandates + plugin both present).
+# This block is the soft-enforcement layer addressed in
+# docs/specs/2026-05-06-ralph-loop-baseline.md's follow-on discussion: it reduces
+# duplicate execution between AGENTS.md path mandates and plugin description-match,
+# but does NOT eliminate it. Measure double-fire rate after rollout to validate.
+#
+# MAINTENANCE: the custom-skill list below is hard-coded. If
+# scripts/sync-om-skills.sh changes which skills are synced vs custom,
+# update the list here too.
+if [ "$is_om_vanilla" = true ]; then
+  read -r -d '' HYBRID_ROUTING << 'HYBEOF' || true
+
+
+## OM Vanilla Hybrid — Routing Precedence
+
+This project has `.ai/skills/` (path-based mandates from AGENTS.md) AND the om-superpowers plugin loaded. Both surfaces overlap for synced skills. To avoid duplicate execution and version drift:
+
+| Source | Authoritative for the matching task? |
+|---|---|
+| AGENTS.md row → `.ai/skills/<name>/SKILL.md` | **YES** — always honor first |
+| Plugin om-`<name>` Skill (synced from upstream) | NO — same content as path; cross-reference only |
+| Plugin om-cto / om-product-manager / om-ux / om-user-proxy | YES — custom in this repo, no `.ai/skills/` counterpart |
+| Plugin om-auto-create-pr / om-auto-continue-pr | YES — forked in v1.10.0 (tests-with-code gate), ahead of upstream |
+
+### Rules
+
+- If you read `.ai/skills/<name>/SKILL.md` due to an AGENTS.md mandate, do NOT additionally fire the matching plugin om-`<name>` Skill — they have identical content; you would double-load.
+- The 6 custom/forked skills above are PRIMARY because they have no `.ai/skills/` counterpart or are ahead of upstream. Always invoke them via the Skill tool, regardless of any AGENTS.md content.
+- Subagents dispatched during this session may not inherit this routing context. If you orchestrate subagents (Agent tool), include the relevant precedence inline in the subagent prompt when it touches an om-* skill area.
+
+### Caveat
+
+This is a soft routing rule (context note), not harness enforcement. Description-match still fires the plugin Skill if the model judges the description hits the prompt. The rule reduces duplicate execution but does not eliminate it.
+HYBEOF
+
+  OM_CONTEXT="${OM_CONTEXT}${HYBRID_ROUTING}"
+fi
 
 # Escape for JSON
 escape_for_json() {

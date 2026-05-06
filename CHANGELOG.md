@@ -1,5 +1,41 @@
 # Changelog
 
+## 1.10.2
+
+### Added
+
+- **OM vanilla hybrid routing rule** in `hooks/session-start`. When an OM project also has `.ai/skills/` (i.e. AGENTS.md path mandates are present alongside the plugin), the SessionStart hook appends a routing-precedence section to the agent's context:
+  - `.ai/skills/<name>/SKILL.md` path mandates from AGENTS.md are authoritative for synced skills.
+  - Plugin om-`<name>` Skills that are synced from upstream are cross-reference only — same content, do not double-fire.
+  - Plugin om-cto, om-product-manager, om-ux, om-user-proxy, om-auto-create-pr, om-auto-continue-pr are PRIMARY (custom in this repo or forked ahead of upstream).
+- Smoke-tested across three scenarios: non-OM project (silent), OM project without `.ai/skills/` (no vanilla block), OM vanilla (block injected).
+
+### Why
+
+When a developer works inside the upstream OM clone with the plugin installed, AGENTS.md routes tasks like "implementing a spec" to `.ai/skills/implement-spec/SKILL.md` AND the plugin description for `om-implement-spec` matches the same prompt. Both fire — same content loaded twice in context, possible behavior drift between path mandate and (slightly stale) plugin sync. The routing rule tells the agent: defer to AGENTS.md path for synced skills, use plugin Skill for the 6 custom/forked ones.
+
+### Honest caveats
+
+- This is **soft enforcement**. Description-match still fires the plugin Skill if the model judges it hits — the rule asks the agent to skip the redundant invocation but does not block at the harness level.
+- Subagents (Agent tool dispatches) may not inherit the SessionStart context. The rule reminds the orchestrator to include precedence inline when delegating to subagents.
+- Custom-vs-synced skill list in the hook is hard-coded. If `scripts/sync-om-skills.sh` changes which skills are synced, the hook needs a matching update. Comment in the hook flags the maintenance burden.
+
+### Verification plan
+
+After v1.10.2 ships, baseline 5 sessions inside an OM-vanilla project (e.g. an `open-mercato/open-mercato` clone). Count: how often does the agent double-fire a synced skill (path mandate + plugin Skill invocation for the same task) despite the routing rule? Decision rule:
+
+- **<10% double-fire:** hook is sufficient. Lock in.
+- **10–30%:** add the precedence reminder to synced skill description fields ("if AGENTS.md path mandate exists, defer").
+- **>30%:** soft enforcement isn't enough; consider stripping synced skills from the plugin entirely or thinning them to redirect stubs.
+
+This mirrors the v1.10.0 lesson: ship the right tool for the layer, then measure rather than declare it solved.
+
+### Files touched
+
+- `hooks/session-start` — added `is_om_vanilla` detection (3 lines) + conditional routing block (~40 lines, ~300 tokens injected into agent context only when `.ai/skills/` is present)
+- `.claude-plugin/plugin.json` + `.claude-plugin/marketplace.json` — version 1.10.2
+- `CHANGELOG.md` — this entry
+
 ## 1.10.1
 
 ### Documentation
