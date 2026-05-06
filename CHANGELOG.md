@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.11.0
+
+### Added
+
+- **Smart entry-point auto-detection** in `hooks/session-start`. The hook now inspects the project filesystem and injects a specific actionable recommendation into the agent's context, so the agent picks the right om-* skill to invoke even when the user prompt is vague ("continue", "finish this", "let's go", "co dalej", "kontynuuj"). Three states are detected:
+  - **In-progress run** (`.ai/runs/*.md` with unchecked `- [ ]` items) → recommends `gh pr list --search "Tracking plan: <basename>"` + `om-auto-continue-pr <PR#>`. Includes plan path and unchecked-step count.
+  - **Approved specs without execution plan** (specs with `Status: approved/ready/implemented`) → recommends invoking `om-cto` Implementation Orchestrator.
+  - **app-spec/ phase only** → recommends `om-cto` Spec Orchestrator (if Cagan output present) or `om-product-manager` (if not).
+- The recommendation includes an explicit reminder: per-atomic-commit gates (currently tests-with-code; future DS/e2e/code-review when baseline justifies) live inside the auto-* SKILL.md content and only fire when those skills are invoked. Ad-hoc `git commit` calls bypass the gate. The recommendation routes the agent through a skill where the gate is present.
+- Smoke-tested across 5 scenarios: non-OM (silent), OM-no-state, in-progress plan, approved specs, app-spec only — all behave correctly.
+
+### Why
+
+Forensic data from a recent session (oss-prm / patryk-standalone-standalone-app, 563 records, 92 Bash calls, 6 git commits): the agent invoked `Skill` exactly once and `Agent` exactly once. The tests-with-code gate (shipped in v1.10.0) never fired — its signature `git diff --cached --name-only` + grep never appeared. Root cause: the user said "lest finish this project" (vague continuation prompt), the agent did not route to `om-auto-create-pr` / `om-auto-continue-pr` / `om-implement-spec`, and went into ad-hoc Bash mode. The gate is dead text on disk if the skill that contains it is not invoked.
+
+This release moves entry-point selection from "agent figures it out from prose in the hook" to "hook does filesystem detection and injects a specific command." Determinism on entry; gate then fires because the skill it lives in has been invoked.
+
+### Fixed
+
+- `hooks/session-start` had a latent `set -e` + `pipefail` interaction with `grep`'s no-match exit code (1) that would cause the hook to exit silently when scanning `.ai/specs/` for approved specs returned zero matches. Wrapped the grep in a brace block with `|| true` to neutralize. Caught during smoke-testing of the new entry-point detection path.
+
+### Honest scope
+
+This is **entry-point** determinism, not **mid-session** determinism. The agent can still bypass the recommendation and run ad-hoc Bash. A `PreToolUse` hook on `git commit` (harness-level harder enforcement) is a separate piece of work — not in v1.11.0. After this release, baseline 5 sessions and measure: did the agent follow the entry-point recommendation? If <70%, the hook needs strengthening or we ship the PreToolUse Bash interceptor.
+
+### Files touched
+
+- `hooks/session-start` — added `most_recent_plan` / `in_progress_count` / `has_app_spec` / `approved_specs_count` detection (~30 lines), conditional `ENTRY_POINT` block (~40 lines, 0 tokens when nothing detected, ~600 tokens when most-likely-case in-progress fires).
+- `.claude-plugin/plugin.json` + `.claude-plugin/marketplace.json` — version 1.11.0.
+- `CHANGELOG.md` — this entry.
+
 ## 1.10.2
 
 ### Added

@@ -35,6 +35,41 @@ if [ -d ".ai/skills" ]; then
   is_om_vanilla=true
 fi
 
+# Auto-detect entry point: scan for in-progress execution plans.
+# A plan is "in progress" when it has at least one unchecked checkbox `- [ ]`.
+# This handles both auto-create-pr's strict `Status: in-progress` format and
+# the broader `## Progress` checklist convention used by manual plans.
+most_recent_plan=""
+in_progress_count=0
+in_progress_list=""
+
+if [ -d ".ai/runs" ]; then
+  # ls -t sorts by mtime descending; first match with unchecked items wins
+  while IFS= read -r f; do
+    [ -e "$f" ] || continue
+    if grep -q '^- \[ \]' "$f" 2>/dev/null; then
+      in_progress_count=$((in_progress_count + 1))
+      in_progress_list="${in_progress_list}- ${f}\n"
+      if [ -z "$most_recent_plan" ]; then
+        most_recent_plan="$f"
+      fi
+    fi
+  done < <(ls -t .ai/runs/*.md 2>/dev/null)
+fi
+
+# Detect app-spec/ presence (ideation phase) and approved spec count
+has_app_spec=false
+if [ -d "app-spec" ]; then
+  has_app_spec=true
+fi
+
+approved_specs_count=0
+if [ -d ".ai/specs" ]; then
+  # Wrap grep in a brace block with `|| true` to neutralize grep's exit-1
+  # on no-match — otherwise `set -e` + `pipefail` exits the entire hook silently.
+  approved_specs_count=$( { grep -l -i -E "Status:[[:space:]]*(approved|ready|implemented)" .ai/specs/*.md 2>/dev/null || true; } | wc -l | tr -d ' ')
+fi
+
 # Build context message
 read -r -d '' OM_CONTEXT << 'CTXEOF' || true
 You are working in an Open Mercato project with OM Superpowers active.
@@ -162,6 +197,30 @@ HYBEOF
 
   OM_CONTEXT="${OM_CONTEXT}${HYBRID_ROUTING}"
 fi
+
+# Auto-detected entry point recommendation. Fires when project state is detectable
+# from filesystem signal — even if user prompt is vague ("continue", "let's go",
+# "finish this"). The recommendation is a specific command, not prose advice.
+ENTRY_POINT=""
+
+if [ -n "$most_recent_plan" ]; then
+  plan_basename=$(basename "$most_recent_plan")
+  unchecked=$(grep -c '^- \[ \]' "$most_recent_plan" 2>/dev/null || echo 0)
+  total=$(grep -cE '^- \[[ x]\]' "$most_recent_plan" 2>/dev/null || echo 0)
+
+  ENTRY_POINT_DETAIL=$(printf '\n\n## Auto-Detected Entry Point — IN-PROGRESS RUN\n\nA plan with **%s unchecked steps** (of %s total) was found:\n\n```\n%s\n```\n\n**When the user prompt is vague** ("continue", "finish this", "let'"'"'s go", "co dalej", "kontynuuj"), do NOT default to ad-hoc Bash commits. Instead:\n\n1. Find the matching open PR — `gh pr list --search "Tracking plan: %s" --state open --json number --jq ".[0].number"`\n2. If a PR is found → invoke the `om-auto-continue-pr` Skill with that PR number. The auto-continue-pr workflow runs the tests-with-code gate at commit time (v1.10.0+).\n3. If no PR is found but the plan has a clear branch in `git branch --list "fix/*" "feat/*"` → invoke `om-implement-spec` against the plan'"'"'s Source spec line.\n4. If neither → ask the user how to proceed; do not start ad-hoc work.\n\n**Why this matters.** Per-atomic-commit gates (currently: tests-with-code; future: DS, e2e, code-review when baseline justifies) live INSIDE the `om-auto-create-pr` / `om-auto-continue-pr` SKILL.md content. They only fire when those skills are invoked. Ad-hoc `git commit` calls bypass the gate. The recommendation above ensures the agent enters through a skill, where gates are present.\n' "$unchecked" "$total" "$most_recent_plan" "$plan_basename")
+  ENTRY_POINT="${ENTRY_POINT}${ENTRY_POINT_DETAIL}"
+
+  if [ "$in_progress_count" -gt 1 ]; then
+    ENTRY_POINT="${ENTRY_POINT}$(printf '\n### Other in-progress plans found (%s total)\n\n%b' "$in_progress_count" "$in_progress_list")"
+  fi
+elif [ "$approved_specs_count" -gt 0 ]; then
+  ENTRY_POINT=$(printf '\n\n## Auto-Detected Entry Point — APPROVED SPECS\n\n%s spec(s) marked as approved/ready in `.ai/specs/`. No execution plan in `.ai/runs/` yet.\n\n**Action when user prompts to build / implement:** invoke the `om-cto` Skill in Implementation Orchestrator mode — it dispatches `om-implement-spec` per approved spec with checkpoints between specs.\n\nDo NOT start coding without going through `om-cto` first; specs need to be picked in the right order and the orchestrator handles that.\n' "$approved_specs_count")
+elif [ "$has_app_spec" = true ]; then
+  ENTRY_POINT=$(printf '\n\n## Auto-Detected Entry Point — APP SPEC PHASE\n\nAn `app-spec/` directory exists. No functional specs in `.ai/specs/` and no in-progress runs.\n\n**Action when user prompts to build / continue:**\n- If `app-spec/` contains a Cagan App Spec (workflows, user stories, platform mapping) → invoke `om-cto` Spec Orchestrator to decompose into functional specs.\n- If `app-spec/` is empty or only stubs → invoke `om-product-manager` (Cagan/Mat) to author the App Spec.\n')
+fi
+
+OM_CONTEXT="${OM_CONTEXT}${ENTRY_POINT}"
 
 # Escape for JSON
 escape_for_json() {
