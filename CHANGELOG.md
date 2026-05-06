@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.9.1
+
+### Rollback of v1.9.0
+
+v1.9.0 has been **yanked**. This release reverts commit `e5691c2` and restores the codebase to the v1.8.0 behavior. Users who installed v1.9.0 should update via `/plugins marketplace update om-superpowers` to receive the rollback.
+
+### Why
+
+Internal review of v1.9.0 surfaced two critical bugs and a process violation:
+
+1. **Fictional invocation contracts.** `skills/_shared/per-commit-gates.md` documented `om-code-review --fast` and `om-ds-guardian` reading `/tmp/staged.diff`. Neither exists — both targets are Skills (invoked via the Skill tool), not CLIs. At runtime the agent would either fabricate an invocation or silently skip the gate. Two of three gates therefore would not run as documented.
+2. **Pre-commit semantics chosen wrong for the stated use case.** OQ-1 was resolved as pre-commit (gate the staged index, leave dirty index on retry exhaustion). For dispatched / unattended runs, post-commit-with-revert gives `git log` as the audit trail and avoids the dirty-worktree-to-physically-re-attach problem. Wrong choice for the actual use case.
+3. **Spec verification step skipped.** The spec's own Verification step 1 required auditing the last 5 `om-auto-create-pr` PRs to baseline what gates would catch at commit time vs end-of-PR. That audit was not run before implementation. There was no evidence the per-commit gate solves a failure mode the existing end-of-PR pass doesn't already catch.
+
+### What's still in flight
+
+The work is not abandoned — only rolled back. The plan, in order:
+
+1. Run the L93 baseline (5 most recent `om-auto-create-pr` PRs, per-commit gate-coverage analysis with numbers).
+2. Branch on the baseline data: ship gates, ship them partially, or abandon.
+3. If shipping: rewrite `_shared/per-commit-gates.md` with real Skill-tool invocations, replace per-commit `om-code-review` with a focused inline subagent (security + arch only), flip OQ-1 to post-commit-with-revert, collapse work-commit + Progress-flip + Gate-log into one commit per Step. Ship as v1.10.0.
+
+### Migration notes
+
+- If you installed v1.9.0, run `/plugins marketplace update om-superpowers` to pull v1.9.1 (rollback). Your local plugin will return to v1.8.0 behavior.
+- The v1.9.0 git tag is preserved for history. Its GitHub Release body is marked YANKED.
+- No data or PR state from any prior auto-create-pr / auto-continue-pr run is affected — the rollback only changes which version of the skill drives future runs.
+
 ## 1.8.0
 
 ### Changed
