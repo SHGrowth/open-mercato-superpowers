@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.11.1
+
+### Documentation
+
+- `README.md` — added two callouts under the Automation skills table: (1) brief note on the v1.11.0 entry-point auto-detection, (2) **Autonomous Ralph-style runs** section explaining how to compose Claude Code's harness `/loop` skill with `om-auto-continue-pr` for unattended execution. No custom bash wrapper is shipped — the harness's `/loop` already does what Ralph's `for` loop does, and v1.11.0's SessionStart hook makes each cold iteration self-orient toward the in-progress plan.
+
+No behavior change. Manifest bump only so `/plugins marketplace update om-superpowers` actually picks up the README for users on v1.11.0.
+
 ## 1.11.0
 
 ### Added

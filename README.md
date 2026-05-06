@@ -165,6 +165,18 @@ The plugin auto-detects OM projects on session start by checking for any of: `@o
 
 > **As of v1.10.0**, `om-auto-create-pr` and `om-auto-continue-pr` enforce a **tests-with-code gate** at commit time: any commit that stages source code (`.ts`/`.tsx`/`.js`/`.jsx`/`.mjs`/`.cjs` outside `__tests__/` and not matching `*.test.*` / `*.spec.*`) without test files is blocked. The agent then either adds tests in the same commit or splits the staged set. Rationale and exemptions in [`docs/specs/2026-05-06-test-coverage-at-commit.md`](docs/specs/2026-05-06-test-coverage-at-commit.md); baseline data that drove the scope in [`docs/specs/2026-05-06-ralph-loop-baseline.md`](docs/specs/2026-05-06-ralph-loop-baseline.md).
 
+> **As of v1.11.0**, on session start the plugin auto-detects in-progress runs in `.ai/runs/`, approved specs in `.ai/specs/`, or `app-spec/` ideation state, and injects a specific actionable command into the agent's context. Vague prompts like "continue" or "finish this" route to the right skill instead of ad-hoc Bash. See [hooks/session-start](hooks/session-start) for the detection logic.
+
+#### Autonomous Ralph-style runs
+
+For unattended end-to-end execution against an in-progress PR, use Claude Code's harness `/loop` skill — no custom wrapper needed:
+
+```
+/loop 5m /auto-continue-pr 1796
+```
+
+Each iteration starts cold (clean context). The v1.11.0 SessionStart hook detects the in-progress plan and routes to `om-auto-continue-pr`, which runs the tests-with-code gate per atomic commit. The loop exits when you stop it or when the plan has no unchecked steps left and the PR flips to `complete`. Mirrors the [Ralph pattern](https://github.com/snarktank/ralph) without shelling out to fresh `claude -p` processes — the harness handles iteration. For one-off scheduled runs, use `/schedule` instead.
+
 ### Meta
 
 | Skill | When to use |
