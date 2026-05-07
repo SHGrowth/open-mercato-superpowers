@@ -1,6 +1,6 @@
 ---
 name: om-system-extension
-description: Extend core modules using the Universal Module Extension System (UMES). Use when adding columns/fields/filters to existing tables/forms, enriching API responses, intercepting API routes, blocking/validating mutations, replacing UI components, injecting menu items, or reacting to domain events. Also covers module ejection as a last-resort path when UMES is insufficient (triggers on "eject", "customize module", "modify core module", "override module", "fork module", "should I eject" — the eject workflow lives in references/eject.md and the skill loads it on demand). Triggers on "extend", "add column to", "add field to", "inject into", "intercept", "enrich", "hook into", "customize", "override component", "add menu item", "react to event", "block mutation", "validate before save".
+description: Extend core modules using the Universal Module Extension System (UMES). Use when adding columns/fields/filters to existing tables/forms, enriching API responses, intercepting API routes, blocking/validating mutations, replacing UI components, injecting menu items, or reacting to domain events. Triggers on "extend", "add column to", "add field to", "inject into", "intercept", "enrich", "hook into", "customize", "override component", "add menu item", "react to event", "block mutation", "validate before save".
 ---
 
 # System Extension — UMES Wizard
@@ -47,8 +47,6 @@ Ask what the developer wants to achieve. Match to the correct mechanism(s).
 | **Add a tab/section to a detail page** | Widget Injection (tab kind) + injection-table | §6 |
 
 **When multiple mechanisms are needed** (e.g., "add a column"), follow the **Triad Pattern** (§12) which wires enricher → widget → injection-table as a coordinated set.
-
-**When UMES is insufficient** (e.g., changing core entity schema, replacing built-in business logic, removing required fields, modifying core auth flow): load `references/eject.md` for the safe ejection workflow. UMES is the default; ejection is the last resort.
 
 ---
 
