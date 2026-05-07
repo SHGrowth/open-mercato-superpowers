@@ -146,6 +146,8 @@ The plugin auto-detects OM projects on session start by checking for any of: `@o
 | `om-integration-builder` | Building provider packages (payment, shipping, data sync) |
 | `om-backend-ui-design` | Backend UI pages within the OM component library |
 
+> **As of v1.11.6**, `om-implement-spec` runs a mandatory **post-PR review gate** (Step 9) before reporting a spec implementation complete. After the run plan opens a PR, the implementer invokes `om-auto-review-pr <PR#>` in autofix mode (which itself chains `om-ds-guardian REVIEW` for UI work) and loops until clean verdict or only non-actionable findings remain. This closes the gap that caused PRM PR #4 + PR #5 to ship without code review or DS-Guardian passes — both required user-initiated cleanup loops surfaced only when the user asked *"have we run tests, ui tests, design system review, code review?"* Step 6 self-review is the implementer reading the checklist to itself; Step 9 is the real review. Rationale and forensic in [`docs/specs/2026-05-07-implement-spec-post-pr-gate.md`](docs/specs/2026-05-07-implement-spec-post-pr-gate.md).
+
 ### Quality & Testing
 
 | Skill | When to use |

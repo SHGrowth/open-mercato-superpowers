@@ -27,7 +27,7 @@ Confirm the implementation completed the full pipeline:
 - Implementation done
 - Unit tests: written and passing
 - Integration tests: written, executed, and passing
-- Code review: passed (Critical/High findings fixed)
+- **Code review: `om-auto-review-pr <PR#>` invoked against the resulting PR and returned a clean verdict** (autofix loop applied, all Critical/High findings fixed, DS-Guardian REVIEW chained for any UI changes). Self-review against the checklist by the implementer is not a substitute. As of v1.11.6, `om-implement-spec` Step 9 enforces this; Piotr verifies it actually ran and passed before checkpointing.
 - Spec updated with implementation status
 
 If implementation reports blockers, Piotr diagnoses and resolves them before proceeding.

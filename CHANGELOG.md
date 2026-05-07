@@ -1,5 +1,42 @@
 # Changelog
 
+## 1.11.6
+
+### Added — om-implement-spec post-PR review gate
+
+**Triggered by PRM PR #4 + PR #5 (consecutive incidents, same shape).** Two autonomous spec implementations stopped at "PR opened" without invoking any real code-review pass. PR #4 (Spec #4 WIC ingestion) shipped a "merge-ready" comment; the user caught it manually with *"we havent closed this in clean way, have we run tests, ui tests, design system review code review?"* — triggered 5 cleanup iterations. PR #5 (Spec #5 RFP broadcast/response) repeated the exact same gap one day later: 14 commits, run plan C5 ran typecheck + jest + integration + opened the PR + posted "Spec #5 shipped end-to-end" + went idle. **Zero `om-auto-review-pr` invocation. Zero `om-ds-guardian REVIEW` on the new portal pages. Zero security checklist pass.** The fix from PR #4 lived only in the user's session memory and was never encoded into om-superpowers.
+
+The gap: `om-auto-create-pr` (Step 11) and `om-auto-continue-pr` (Step 7) both run `om-auto-review-pr` in autofix loop until clean. **`om-implement-spec` doesn't.** Its Step 6 ("Self-Review") is the implementer reading the checklist *to itself*, which catches the rules the implementer was already trying to follow but does NOT catch cross-file architectural concerns, security checklist items needing fresh eyes (orgId scoping, tenant isolation, ACL guards), DS-Guardian findings, BC concerns on contract surfaces, or test-coverage gates that fire at commit boundaries. The orchestrator (`impl-orchestrator.md` Step 2) named "Code review: passed" as a gate but didn't actually invoke `om-auto-review-pr` — it left that to the implementer, which didn't do it. Net cost: every `om-implement-spec` run produced a PR that *looked* complete but bypassed the same review pass every other PR-producing skill enforces.
+
+v1.11.6 closes the gap with the same three-layer doc-only shape as v1.11.5. No enforcement hook (rejected — false-positive risk on legitimate "stopped early because user interrupted" or "stopped because real blocker" cases, see spec § Why doc-only, no hook). See `docs/specs/2026-05-07-implement-spec-post-pr-gate.md` for the full forensic and rationale.
+
+#### Layer 1 — `skills/om-implement-spec/SKILL.md` new Step 9 "Post-PR Review Gate"
+
+Inserted after Step 8 Verification, before Subagent Strategy. Mirrors the language from `om-auto-create-pr` Step 11 and `om-auto-continue-pr` Step 7. Mandates: invoke `auto-review-pr <PR#>` in autofix mode against the resulting PR; chain `om-ds-guardian REVIEW` for UI changes; loop until clean verdict or non-actionable findings explicitly documented in the spec's `## Implementation Status` notes column; if `auto-review-pr` cannot run, escalate by leaving the spec status as `in_progress` and reporting the blocker to the user. **Closing line: do not report a spec implementation complete until this step has passed.**
+
+#### Layer 2 — `skills/om-cto/references/impl-orchestrator.md` Step 2 "Verify completion"
+
+The "Code review: passed" bullet was a passive checkbox the implementer self-attested. Now explicitly says `om-auto-review-pr <PR#>` must be invoked and return a clean verdict, autofix loop applied, all Critical/High findings fixed, DS-Guardian REVIEW chained for any UI changes. Notes that as of v1.11.6, `om-implement-spec` Step 9 enforces this; Piotr verifies it actually ran and passed before checkpointing.
+
+#### Layer 3 — `om-implement-spec` Rules block one-liner
+
+Added: *"MUST NOT report a spec implementation complete until `om-auto-review-pr` has returned a clean verdict on the resulting PR (Step 9). Step 6's self-review is the implementer reading the checklist to itself and does not substitute for a real review pass. Two production incidents (PRM PR #4 + PR #5) shipped without this gate."*
+
+### Files touched
+
+- `README.md` — added v1.11.6 callout under the Implementation skills table explaining the new Step 9 gate.
+- `skills/om-implement-spec/SKILL.md` — new Step 9 + Rules one-liner.
+- `skills/om-cto/references/impl-orchestrator.md` — operationalized "Code review: passed" bullet in Step 2.
+- `docs/specs/2026-05-07-implement-spec-post-pr-gate.md` — new forensic + rationale + verification criteria + why-no-hook.
+- `.claude-plugin/plugin.json` + `.claude-plugin/marketplace.json` — version 1.11.6.
+- `CHANGELOG.md` — this entry.
+
+### Process notes (lessons)
+
+- The fix that surfaced from PR #4's "we haven't closed this in clean way" correction lived only in the user's session memory. The next spec implementation (PR #5) walked into the same gap one day later. **One-time corrections in conversation do not persist; only doc/skill/memory layer changes do.** This release codifies the rule so it survives the next session.
+- Two consecutive incidents with the same shape is the threshold for a v1.X release in this project. v1.11.5 (the /loop self-pace fix) and v1.11.6 (this fix) both ship from the same patryk-standalone forensic vein. If v1.11.7 emerges from the same source, it will likely be a hook escalation — the doc layer is getting its second fair trial.
+- Saved as a feedback memory: `om-implement-spec` does not invoke `om-auto-review-pr` in versions ≤ v1.11.5; future sessions in om-superpowers context need to know this gap closed in v1.11.6 and remember to run the review pass themselves if they encounter pre-v1.11.6 behavior.
+
 ## 1.11.5
 
 ### Added — autonomous loop policy

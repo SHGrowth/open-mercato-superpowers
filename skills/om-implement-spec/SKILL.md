@@ -178,6 +178,23 @@ After all targeted phases are complete:
 
 Report results to the user. If any check fails, fix and re-verify.
 
+### Step 9 — Post-PR Review Gate (mandatory when a PR was opened)
+
+Step 6's self-review is the implementer reading the checklist *to itself*. It does not substitute for an actual review pass on the resulting PR. If this implementation produced a PR (typical when dispatched via `auto-create-pr` or when the run plan opens one in its final commit), subject the PR to a real second pass before reporting complete.
+
+`om-implement-spec` does not hold an `in-progress` lock on the PR at this point, so `auto-review-pr`'s claim check will see "not in progress, current user is the author/assignee" and claim it fresh by applying the `in-progress` label. That is expected — `auto-review-pr` owns releasing the label when it finishes, per its own step 11.
+
+Invoke `skills/om-auto-review-pr/SKILL.md` against `{prNumber}` in autofix mode:
+
+1. Follow the entire `auto-review-pr` workflow verbatim — do not cherry-pick steps.
+2. For UI changes, the autofix loop chains `om-ds-guardian REVIEW` automatically; do not skip the DS pass on portal/backend page work.
+3. If autofix opens follow-up commits, push them on the same feature branch (never rewrite history).
+4. Loop until `auto-review-pr` returns a clean verdict (no actionable blockers) or the remaining findings are non-actionable (out-of-scope, false positive) and explicitly documented in the spec's `## Implementation Status` notes column.
+
+If `auto-review-pr` cannot run (e.g., required checks not yet green, missing context), escalate: leave the spec's status as `in_progress`, stop here, and report the blocker to the user so they can decide whether to resume.
+
+**Do not report a spec implementation complete until this step has passed.** This is the gate that catches what self-review missed: cross-file architectural concerns, security checklist items, DS-guardian findings on UI, BC concerns on contract surfaces. Two production incidents (PRM Spec #4 PR #4, PRM Spec #5 PR #5) shipped without this gate; both required cleanup loops surfaced only when the user manually asked for review. Codified 2026-05-07 as v1.11.6 — see `docs/specs/2026-05-07-implement-spec-post-pr-gate.md`.
+
 ## Subagent Strategy
 
 | Task | Agent Type | When |
@@ -216,3 +233,4 @@ When implementing component replacement features (as in SPEC-041h pattern):
 - MUST keep subagents focused — one task per subagent, clear boundaries
 - MUST report blockers to the user immediately rather than working around them silently
 - MUST NOT call `ScheduleWakeup` between phases or iterations. Implementation chains in this conversation; if the user asks for unattended Ralph-style execution, hand off to `/loop 5m /auto-continue-pr <PR#>` (harness cron mode) instead. `ScheduleWakeup` with delay >270 s while a run-plan checklist has unchecked items is an anti-pattern — it inserts a 20–30 min do-nothing gap per commit. See `skills/om-cto/references/impl-orchestrator.md` § Autonomous loop policy.
+- MUST NOT report a spec implementation complete until `om-auto-review-pr` has returned a clean verdict on the resulting PR (Step 9). Step 6's self-review is the implementer reading the checklist to itself and does not substitute for a real review pass. Two production incidents (PRM PR #4 + PR #5) shipped without this gate; both required user-initiated cleanup loops. See Step 9 and `docs/specs/2026-05-07-implement-spec-post-pr-gate.md`.
