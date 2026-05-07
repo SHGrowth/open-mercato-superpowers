@@ -554,15 +554,17 @@ Always release before the skill exits — even on failure. Use a `trap` or equiv
 ```bash
 # Remove the in-progress label (use the same GraphQL label flow used elsewhere)
 
-gh pr comment {prNumber} --body "🤖 \`auto-review-pr\` completed: ${VERDICT}. Lock released."
+gh pr comment {prNumber} --body "🤖 auto-review-pr completed: ${VERDICT}. Lock released."
 ```
 
-Rules:
+Rules (v1.12.0+ lean style):
 
-- Keep the assignee — it shows the human who is responsible for next steps
-- Remove the `in-progress` label
-- Post a completion comment with the verdict (`APPROVED` or `CHANGES REQUESTED`) and a short summary
-- If autofix mode ran, mention how many fix iterations completed
+- Keep the assignee — it shows the human who is responsible for next steps.
+- Remove the `in-progress` label.
+- Completion comment is one short line. Plain English. **No multi-paragraph summaries** in this comment — the formal review body posted in step 8 carries the structured findings.
+- **Never paste secrets, env var values, raw test output, or unredacted stack traces** in any comment.
+- Detailed verdict + findings live in the review body (step 8), not in the completion comment. Avoid duplication.
+- Pre-v1.11.7 review comments may have been verbose; they stay as historical record.
 
 ### 12. Report back
 

@@ -1,5 +1,96 @@
 # Changelog
 
+## 1.12.0
+
+### Added — `om-orchestrate` skill (Phase 1 of the road to v1.14.0 oneshot)
+
+A new top-level skill that runs a fully autonomous agent fleet via GitHub Issues + labels + PR comments. Phase 1 ships single-agent + e2e-singleton + auto-merge mode. Phase 2 (v1.13.0) raises `parallel_n` for multi-agent; Phase 3 (v1.14.0) closes the loop with full failure recovery + Projects v2 view. End state of v1.14.0: typing `/om-orchestrate <app-spec>` produces merged PRs with no human babysitting.
+
+**Driven by** the user's stated goal — *oneshot OM systems* — and three failures observed in PRM forensics: v1.11.5 (agents sleeping during /loop self-pace) was the *symptom*; the *cause* was no peer to yield to. v1.11.6 (review-skipped) was the *symptom*; the *cause* was no downstream gate that another agent enforced. v1.12.0 builds the substrate: an agent that yields work via labels and another agent that picks it up.
+
+#### Skill structure (context-budget discipline)
+
+The entire orchestration system adds **at most one new top-level skill** to the plugin. Total session-start context tax: ~150 tokens (one skill description), not ~1000 (the naive design with five separate skills). 6× reduction. Internal "agents" are PROMPTS fed to background `claude -p` processes by the dispatcher script — they never appear in the Skill router and never tax session start.
+
+```
+skills/om-orchestrate/
+├── SKILL.md                                # ~80 lines, just enough for routing
+├── references/                             # loaded on-demand, zero session tax
+│   ├── agent-contracts.md
+│   ├── claim-protocol.md
+│   ├── dispatcher.md
+│   ├── failure-recovery.md
+│   ├── orchestration-yml.md
+│   └── bootstrap.md
+├── prompts/                                # fed to claude -p at runtime, never loaded as skills
+│   ├── coding-agent.md
+│   ├── e2e-agent.md
+│   └── merge-agent.md
+└── scripts/
+    └── dispatcher.sh                       # the bash wrapper
+```
+
+#### Subcommands
+
+- `/om-orchestrate init` — bootstrap UX. Writes `.ai/orchestration.yml`, creates the 11 status labels, verifies `gh auth`. Idempotent.
+- `/om-orchestrate run [<app-spec>]` — start the dispatcher. Spawns one e2e singleton + one coding agent (Phase 1; raises to N in Phase 2). Runs until queue drains.
+- `/om-orchestrate status` — read-only state report.
+- `/om-orchestrate stop` — graceful shutdown.
+
+#### Key design decisions baked into v1.12.0
+
+- **Issues, not PRs, are work units.** Earlier draft used PRs; Issues are a strict upgrade because the work exists from decomposition (before any code), failed PRs don't muddy state (issue stays open, new PR can be linked), and dependencies use the well-known `Blocked by #N` idiom.
+- **Claim protocol uses single-instance `claim:agent-<ts>-<pid>-<host>` label + verify-after-add + lowest-timestamp tiebreaker.** GitHub does NOT return 422 on duplicate `--add-assignee` (assignees are additive); the v0.1 spec assumed wrong. The corrected primitive is race-safe sub-second.
+- **Dispatcher is a bash wrapper (`scripts/dispatcher.sh`), not a long-running claude session.** Coding agents are short-lived per-tick `claude -p` processes. E2E singleton is the one long-lived `/loop` process. Stateless beyond GitHub labels — the dispatcher (or any agent) can be killed and recovers.
+- **Project-agnostic via `.ai/orchestration.yml`.** Every adopting OM project declares its own e2e command, required env, merge strategy, base branch, parallel_n, etc. No hardcoded PRM-specific assumptions. Community-fit by design.
+- **Auto-merge ships in Phase 1.** Trivial when only one PR is in flight (no conflict possible). Pulled forward so v1.14.0 doesn't have to add it. Multi-PR conflict auto-rebase ships in Phase 2 (v1.13.0).
+- **Cost telemetry instrumented from day 1.** Per-tick jsonl logs to `/tmp/om-telemetry/`. Phase 2 baseline measurement is therefore a deferred-but-easy step.
+
+#### `om-implement-spec` Step 8 — additive singleton-detect fallback
+
+`om-implement-spec` Step 8 (Verification → Integration tests) is patched additively. When ready for tests, the implementer detects whether an e2e singleton is alive (`.ai/orchestration.yml` exists + `/tmp/om-agent-e2e.pid` names a live process + recent e2e comment posted). If alive → enqueue via `status:coding → status:needs-e2e` label transition + lean handoff comment, exit. If not alive → fall back to inline `yarn test:integration:ephemeral` (current v1.11.6 behavior). Three positive signals required to enqueue; false positives unacceptable; false negatives recoverable.
+
+**BC**: nothing breaks for users who haven't run `/om-orchestrate init`. Identical v1.11.6 behavior in inline path.
+
+### Bundled — lean GitHub language (formerly v1.11.7)
+
+The lean GitHub communication style codification was originally planned as v1.11.7. Per the context-budget rule and to avoid release-ceremony churn, it ships AS PART OF v1.12.0:
+
+- **`om-auto-create-pr` Step 12** — verbose "comprehensive summary comment" template (~50 lines with stat tables, file lists, §-citations, internal skill names) replaced with a 6-line lean template: run plan path + status + plain-English what-changed + verification one-liner + rollback note. No stat tables, no SHA dumps, no internal jargon.
+- **`om-auto-continue-pr` Step 8** — same shape rewrite for resume comments. Same 6-line lean template.
+- **`om-auto-review-pr` Step 11** — completion comment tightened to one short line. Verdict + findings live in the formal review body (step 8), not duplicated into the completion comment.
+- All three skills now MUST NOT paste secrets, env var values, raw test output, or unredacted stack traces in any comment. (The rule existed in `auto-continue-pr`'s Rules block; v1.12.0 standardizes it across the trio.)
+
+Pre-v1.11.7 PRs in any repo retain their verbose comments as historical record — no retroactive rewriting.
+
+### Files touched
+
+- `skills/om-orchestrate/SKILL.md` (new) — ~80 lines, the only new top-level skill.
+- `skills/om-orchestrate/references/{bootstrap,orchestration-yml,dispatcher,agent-contracts,claim-protocol,failure-recovery}.md` (new × 6) — on-demand references; zero session-start cost.
+- `skills/om-orchestrate/prompts/{coding-agent,e2e-agent,merge-agent}.md` (new × 3) — content fed to background `claude -p` processes; not skills.
+- `skills/om-orchestrate/scripts/dispatcher.sh` (new) — bash wrapper that spawns the fleet.
+- `skills/om-implement-spec/SKILL.md` — Step 8 patched additively with singleton-detect fallback.
+- `skills/om-auto-create-pr/SKILL.md` — Step 12 verbose template replaced with lean version.
+- `skills/om-auto-continue-pr/SKILL.md` — Step 8 verbose template replaced with lean version.
+- `skills/om-auto-review-pr/SKILL.md` — Step 11 completion comment tightened.
+- `README.md` — bumped from "18 user-facing skills" to "19" + new entry in Automation table + v1.12.0 callout.
+- `.claude-plugin/plugin.json` + `.claude-plugin/marketplace.json` — version 1.12.0.
+- `CHANGELOG.md` — this entry.
+
+### Phasing toward v1.14.0 oneshot goal
+
+| Phase | Version | Surface |
+|---|---|---|
+| **Phase 1 (this release)** | v1.12.0 | E2E singleton + label vocabulary + bootstrap UX + auto-merge for single-agent + lean language. **Validation surface: PRM Spec #6 single-agent end-to-end through auto-merge.** |
+| Phase 2 | v1.13.0 | Multi-agent coding (parallel_n > 1) + claim protocol race-safety + multi-PR conflict auto-rebase + cost baseline measurement. **Validation: PRM Spec #6 + #7 in parallel.** |
+| Phase 3 | v1.14.0 | Full failure recovery (machine-reboot, dispatcher crash, mid-merge crash) + GitHub Projects v2 status field + kanban view for humans. **v1.14.0 = oneshot-complete.** |
+
+### Process notes (lessons)
+
+- The `om-orchestrate` skill avoids the trap of "5 new skills for orchestration" by treating internal agents as prompts (fed to `claude -p`) and workflow detail as references (loaded on-demand). New rule for any future orchestration extensions: at most ONE new top-level skill per architectural concern. Captured as a feedback memory.
+- Bundling v1.11.7's lean-language codification into v1.12.0 saves a release-ceremony round and demonstrates that small refactors don't always need their own version bump — they ship with the next behavior change that needs them.
+- The pre-implementation analysis (`docs/specs/analysis/ANALYSIS-2026-05-07-github-tasks-orchestration.md`) caught 4 critical issues in the v0.1 spec before any code was written. Continue this discipline for future major specs — Piotr's spec-readiness gate is cheap and high-value.
+
 ## 1.11.6
 
 ### Added — om-implement-spec post-PR review gate

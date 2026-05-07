@@ -1,6 +1,6 @@
 # om-superpowers
 
-Claude Code plugin for [Open Mercato](https://github.com/open-mercato/open-mercato) developers. 18 user-facing skills covering the full OM lifecycle — from business requirements through implementation to code review. Specialist sub-tasks (pre-implementation analysis, module ejection, toolkit audit) are demoted to references under their natural parent skills and load on demand.
+Claude Code plugin for [Open Mercato](https://github.com/open-mercato/open-mercato) developers. 19 user-facing skills covering the full OM lifecycle — from business requirements through implementation to code review to autonomous parallel orchestration. Specialist sub-tasks (pre-implementation analysis, module ejection, toolkit audit, agent contracts) are demoted to references under their natural parent skills and load on demand.
 
 ## Install
 
@@ -148,6 +148,8 @@ The plugin auto-detects OM projects on session start by checking for any of: `@o
 
 > **As of v1.11.6**, `om-implement-spec` runs a mandatory **post-PR review gate** (Step 9) before reporting a spec implementation complete. After the run plan opens a PR, the implementer invokes `om-auto-review-pr <PR#>` in autofix mode (which itself chains `om-ds-guardian REVIEW` for UI work) and loops until clean verdict or only non-actionable findings remain. This closes the gap that caused PRM PR #4 + PR #5 to ship without code review or DS-Guardian passes — both required user-initiated cleanup loops surfaced only when the user asked *"have we run tests, ui tests, design system review, code review?"* Step 6 self-review is the implementer reading the checklist to itself; Step 9 is the real review. Rationale and forensic in [`docs/specs/2026-05-07-implement-spec-post-pr-gate.md`](docs/specs/2026-05-07-implement-spec-post-pr-gate.md).
 
+> **As of v1.12.0**, the new **`om-orchestrate`** skill (Phase 1 of the road to v1.14.0 oneshot OM systems) ships a singleton-mode autonomous fleet. Run `/om-orchestrate init` to bootstrap any OM repo (writes `.ai/orchestration.yml`, creates 11 status labels, verifies `gh auth`), then `/om-orchestrate run <app-spec>` to spawn one e2e singleton + one coding agent that runs through the full pipeline (claim issue → code → enqueue tests → resume → review → **auto-merge**). All coordination via GitHub Issues + labels + PR comments. No filesystem queue, no cmux ceremony. The agent prompts (`prompts/coding-agent.md`, `prompts/e2e-agent.md`) are NOT registered as skills — they're content the dispatcher feeds to background `claude -p` processes, costing zero session-start context. Total session-start tax for the entire orchestration system: one new skill description (~150 tokens). v1.12.0 also bundles **lean GitHub language** retroactively across `om-auto-create-pr`, `om-auto-continue-pr`, `om-auto-review-pr` summary comment templates — plain English, point at run plan / spec, no stat tables, no SHA dumps. `om-implement-spec` Step 8 patched additively with singleton-detect-and-fallback so non-orchestration users see identical v1.11.6 behavior. v1.13.0 raises `parallel_n` for multi-agent; v1.14.0 closes the loop with full failure recovery + Projects v2 view. Design spec in [`docs/specs/2026-05-07-github-tasks-orchestration.md`](docs/specs/2026-05-07-github-tasks-orchestration.md); pre-impl analysis in [`docs/specs/analysis/ANALYSIS-2026-05-07-github-tasks-orchestration.md`](docs/specs/analysis/ANALYSIS-2026-05-07-github-tasks-orchestration.md).
+
 ### Quality & Testing
 
 | Skill | When to use |
@@ -164,6 +166,7 @@ The plugin auto-detects OM projects on session start by checking for any of: `@o
 | `om-auto-create-pr` | Automatically create a pull request from current changes |
 | `om-auto-review-pr` | Automatically review an open pull request |
 | `om-auto-continue-pr` | Continue work on an existing pull request |
+| `om-orchestrate` | **(v1.12.0)** Run a fully autonomous parallel agent fleet that ships OM apps end-to-end via GitHub Issues + PRs. Subcommands: `init`, `run`, `status`, `stop`. Phase 1 of the road to oneshot OM systems (v1.14.0). |
 
 > **As of v1.10.0**, `om-auto-create-pr` and `om-auto-continue-pr` enforce a **tests-with-code gate** at commit time: any commit that stages source code (`.ts`/`.tsx`/`.js`/`.jsx`/`.mjs`/`.cjs` outside `__tests__/` and not matching `*.test.*` / `*.spec.*`) without test files is blocked. The agent then either adds tests in the same commit or splits the staged set. Rationale and exemptions in [`docs/specs/2026-05-06-test-coverage-at-commit.md`](docs/specs/2026-05-06-test-coverage-at-commit.md); baseline data that drove the scope in [`docs/specs/2026-05-06-ralph-loop-baseline.md`](docs/specs/2026-05-06-ralph-loop-baseline.md).
 

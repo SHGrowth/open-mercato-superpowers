@@ -172,11 +172,24 @@ After all targeted phases are complete:
 1. **Build check**: `yarn build:packages` — must pass
 2. **Lint check**: `yarn lint` — must pass
 3. **Unit test check**: `yarn test` — must pass
-4. **Integration test check**: run any new integration tests — must pass
+4. **Integration test check** (with orchestration-aware routing — see below): must pass
 5. **Module prepare**: `yarn generate` — if any convention files changed
 6. **Migration check**: `yarn db:generate` — if any entities changed (verify generated migration is scoped correctly)
 
 Report results to the user. If any check fails, fix and re-verify.
+
+#### Integration test routing (v1.12.0+)
+
+Step 4 (integration tests) has two paths depending on whether the project is opted into the `om-orchestrate` fleet:
+
+**Singleton-detect**:
+- Check if `.ai/orchestration.yml` exists AND a sentinel file (`/tmp/om-agent-e2e.pid`) names a live process AND that process has posted an e2e-related comment within the last `(e2e_poll_cadence_seconds * 4)` seconds.
+- If all three are true → **enqueue** path. Stage commits, push branch, transition the linked issue from `status:coding` → `status:needs-e2e`, post the lean handoff comment, exit. The e2e singleton picks up.
+- If any are false → **inline** path. Run the integration tests in-session (current pre-v1.12.0 behavior). Log a one-line note: *"E2E singleton not detected; running inline. Run `/om-orchestrate init` to enable orchestration mode."*
+
+This is **additive**: nothing breaks for users who haven't opted into orchestration. The inline path is identical to v1.11.6 behavior. Users who DO run `/om-orchestrate init` and spawn the fleet get the singleton's benefits without modifying this skill.
+
+The detection is intentionally lenient — three positive signals required. False positives (skipping integration tests when no singleton exists) are unacceptable; false negatives (running inline when a singleton is alive) are recoverable (the singleton sees the issue is still in `status:coding` and waits; the user can re-run after observing the inline result).
 
 ### Step 9 — Post-PR Review Gate (mandatory when a PR was opened)
 
