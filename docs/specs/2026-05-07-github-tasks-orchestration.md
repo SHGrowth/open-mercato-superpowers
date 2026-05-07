@@ -1,10 +1,13 @@
 # GitHub-Tasks Orchestration — fully autonomous parallel agent fleet
 
 **Date:** 2026-05-07
-**Status:** Design v0.2 — addresses pre-impl analysis blockers (C1-C4, I3) + oneshot extensions (auto-merge, failure recovery, multi-PR conflict)
+**Status:** Design v0.3 — adds context-budget discipline + compressed phasing toward v1.14.0 oneshot goal
 **Owner:** Mat (CEO)
-**Driven by:** v1.11.5 forensic (sleeping anti-pattern); v1.11.6 forensic (post-PR review gap); user goal — oneshot OM systems from App Spec
-**Prior revision:** v0.1 @ commit `2609c8e` — superseded by this revision after Piotr's pre-impl review (`docs/specs/analysis/ANALYSIS-2026-05-07-github-tasks-orchestration.md`)
+**Driven by:** v1.11.5 forensic (sleeping anti-pattern); v1.11.6 forensic (post-PR review gap); user goal — oneshot OM systems from App Spec; user directive — keep agent context lean
+**Prior revisions:**
+- v0.1 @ commit `2609c8e` — initial draft, superseded
+- v0.2 @ commit `7ba79a7` — addressed Piotr's pre-impl analysis blockers (C1-C4, I3) + added oneshot extensions (auto-merge, failure recovery, multi-PR conflict). Superseded by this revision.
+- v0.3 (this) — adds context-budget discipline (≤1 new top-level skill), compresses phasing toward v1.14.0 as the actual goal, retires v1.11.7-as-its-own-release.
 
 ## TL;DR
 
@@ -25,6 +28,10 @@ The user's stated goal — *oneshot OM systems* — adds three additional requir
 4. **Auto-merge** when a PR is review-clean (currently humans merge; oneshot can't).
 5. **Failure recovery** when an agent crashes mid-spec (currently a human re-dispatches).
 6. **Multi-PR conflict resolution** when parallel agents touch shared files (does not exist today; needed once parallelism is real).
+
+Plus a fourth design constraint surfaced 2026-05-07:
+
+7. **Context budget — every skill loads at session start, taxing every future agent in the project.** v0.1 implied 5+ new top-level skills (`om-orchestrate`, `om-e2e-runner`, `om-pr-tick`, `om-merge-agent`, etc.). At ~120-200 tokens of frontmatter each, that's a 1k+ token tax on every session forever. Not acceptable. v0.3 commits to **at most one new top-level skill** for the entire orchestration system; everything else is prompts (dispatcher-fed, never in the router) or references (on-demand, not at session start).
 
 These are addressed below in dedicated sections.
 
@@ -175,11 +182,60 @@ The two locks are *complementary*, not redundant:
 
 Rule: **orchestration agents touch only `status:*` labels on issues. Auto-* trio touches only `in-progress` on PRs. Crossover is never required.**
 
+## Skill surface budget — minimize context tax
+
+**Hard rule: the entire orchestration system adds at most ONE new top-level skill to the om-superpowers plugin.**
+
+Why this matters: every skill registered in `.claude-plugin/plugin.json` loads its frontmatter description at session start in any project that has om-superpowers installed. The current 24 plugin skills cost ~2.5k tokens of permanent context tax per session. Naive design (`om-orchestrate`, `om-orchestrate-init`, `om-e2e-runner`, `om-pr-tick`, `om-e2e-tick`, `om-merge-agent` as separate skills) would add ~1k tokens to every session, forever — even sessions that never invoke orchestration.
+
+**Three tiers of code in this design, with strict rules per tier:**
+
+| Tier | What | Loads at session start? | Example |
+|---|---|---|---|
+| **Top-level skill** | User-invocable `/om-<name>` entry points | YES — frontmatter description + name | `om-orchestrate` (the only new one) |
+| **References** | On-demand documentation loaded by a parent skill | NO — only loaded when parent reads them | `skills/om-orchestrate/references/agent-contracts.md`, `references/dispatcher.md`, `references/recovery.md` |
+| **Prompts** | Templates fed by the dispatcher to background `claude -p` processes | NO — not registered as skills, the dispatcher reads them at runtime | `skills/om-orchestrate/prompts/coding-agent.md`, `prompts/e2e-agent.md`, `prompts/merge-agent.md` |
+
+**The single new skill, `om-orchestrate`, has subcommands**:
+
+| Subcommand | What it does |
+|---|---|
+| `/om-orchestrate init` | Bootstrap UX — create `.ai/orchestration.yml`, create labels, verify gh auth |
+| `/om-orchestrate run [<app-spec>]` | Start the dispatcher; spawn fleet; run until queue drains |
+| `/om-orchestrate status` | Read-only status report (issues by label, agent processes alive, ETA) |
+| `/om-orchestrate stop` | Graceful shutdown — let in-flight agents finish, refuse new claims |
+
+The skill's `SKILL.md` is **minimal** — frontmatter + 1-2 paragraphs of router context. Detailed workflow lives in `references/<topic>.md` files loaded on-demand:
+
+```
+skills/om-orchestrate/
+├── SKILL.md                                # ~80 lines, just enough for routing
+├── references/
+│   ├── agent-contracts.md                  # coding agent / e2e / merge contracts
+│   ├── claim-protocol.md                   # the corrected claim primitive
+│   ├── dispatcher.md                       # the bash dispatcher script + invariants
+│   ├── failure-recovery.md                 # crash recovery rules
+│   ├── orchestration-yml.md                # config schema reference
+│   └── bootstrap.md                        # init subcommand details
+├── prompts/
+│   ├── coding-agent.md                     # fed to claude -p by dispatcher
+│   ├── e2e-agent.md
+│   └── merge-agent.md
+└── scripts/
+    └── dispatcher.sh                       # the actual bash wrapper
+```
+
+**Patches to existing skills also obey the budget**: the v1.12.0 patch to `om-implement-spec` adds ~5 lines to its existing Step 8, not a new skill or new section. The v1.13.0 patch to `om-cto` adds ~5 lines to its existing dispatch-context, not a new skill.
+
+**Net session-start context cost** for the entire orchestration system: ~150 tokens (one new skill description). v0.1's implied design would have cost ~1000 tokens. 6× reduction.
+
 ## Agent contracts
 
-### `om-orchestrate` — entry-point + outer dispatcher
+The contracts below describe agent **behavior**, not skill **registration**. Only `om-orchestrate` is a registered skill; the coding/e2e/merge agents are background `claude -p` processes fed by the dispatcher with prompts from `skills/om-orchestrate/prompts/`.
 
-Invoked by user. Reads `app-spec/app-spec.md` (or path from `.ai/orchestration.yml`). Workflow:
+### `om-orchestrate` — the one user-invocable skill
+
+Invoked by user as `/om-orchestrate <subcommand>`. Reads `.ai/orchestration.yml` for project specifics, `app-spec/app-spec.md` for the input. The subcommand routes to the appropriate workflow:
 
 1. Verify `om-orchestrate init` has been run (config exists, labels exist). If not, abort with pointer.
 2. For each spec in the App Spec / EXECUTION-PLAN that lacks a corresponding open issue, create one:
@@ -234,9 +290,11 @@ done
 
 The dispatcher is short, transparent, and terminates when the queue drains. The e2e agent runs in its own long-lived process (exits when no work for `$IDLE_EXIT_TICKS` ticks). Coding agents are per-tick fresh `claude -p` spawns — they exit naturally on session end; the dispatcher decides whether to spawn more.
 
-### Coding agent — `/om-pr-tick`
+### Coding agent — `prompts/coding-agent.md` (background process, not a skill)
 
-Runs **one tick** per process invocation. Picks up issue or resumes prior work, then exits. Steps:
+The dispatcher script reads this prompt and feeds it to a fresh `claude -p` process per tick. The agent runs **one tick** per process invocation, picks up an issue or resumes prior work, then exits. **Not registered as `/om-pr-tick` or any other slash command** — the only entry point is the dispatcher.
+
+Steps:
 
 1. **Find work**:
    - If I have a previous unresolved claim (`claim:agent-*` label still on an open issue, my hostname/PID embedded), resume that issue.
@@ -263,9 +321,9 @@ Runs **one tick** per process invocation. Picks up issue or resumes prior work, 
    - Race-lost on claim attempt.
    - Irrecoverable error → set `status:blocked` + post error comment + exit.
 
-### E2E singleton — `/om-e2e-tick`
+### E2E singleton — `prompts/e2e-agent.md` (background process, not a skill)
 
-Runs **as long as work exists or might arrive**. The agent is a `/loop ${E2E_POLL_CADENCE_SECONDS}s /om-e2e-tick` process. Each tick:
+The dispatcher spawns one long-lived `claude -p` process fed this prompt with a `/loop ${E2E_POLL_CADENCE_SECONDS}s` directive. **Not registered as `/om-e2e-tick`**. Runs as long as work exists or might arrive. Each tick:
 
 1. **Singleton lock check**: read all open issues with `status:e2e-running`. If any have a "running" timestamp (from the labeling agent's comment) older than `e2e.timeout_minutes + 5`, reset to `status:needs-e2e` (stale recovery). If a non-stale running label exists owned by a different process, exit this tick (we're a duplicate; dispatcher should not have spawned us).
 
@@ -294,9 +352,11 @@ When a coding agent's tick sees `status:e2e-passed` on its claimed issue, it tra
 
 This step uses v1.11.6's mandate — no separate review agent process needed; the coding agent invokes the review skill at the right state.
 
-### Auto-merge — NEW
+### Auto-merge — `prompts/merge-agent.md` (background process or coding-agent extension)
 
-**(Addresses oneshot requirement #4.)** When an issue reaches `status:review-clean`, the next tick of any free coding agent (or a dedicated mini-agent) performs the merge:
+**(Addresses oneshot requirement #4.)** Implementation choice within the context budget: the merge logic ships as part of the coding agent's tick (when it sees `status:review-clean` on an issue it can claim, it runs the merge inline). Avoids spawning yet another agent type. The dedicated `prompts/merge-agent.md` is a content fragment included by `prompts/coding-agent.md` rather than a separate process — same context budget, cleaner separation in the prompt source.
+
+When an issue reaches `status:review-clean`, the next coding agent tick performs the merge:
 
 1. Read the linked PR. Verify all `merge.required_checks` (from `.ai/orchestration.yml`) are green via `gh pr checks <PR#>`. If not all green: re-queue for e2e (or set `status:blocked` if the failure is non-test).
 2. Apply `in-progress` label on the PR (auto-* trio's lock — claims the merge action).
@@ -377,12 +437,26 @@ That's it. No stat tables, no §-citations, no internal skill names, no SHA dump
 
 **(Addresses analysis C2 — picks Pattern A over the ambiguous v0.1 description.)**
 
-Coding agents are short-lived: one tick = one `nohup claude -p "/om-pr-tick" &` invocation. Process exits naturally after the tick. The **outer dispatcher** (a small bash wrapper, shown above in `om-orchestrate`) decides whether to spawn another, and how many to keep in flight.
+Coding agents are short-lived: one tick = one fresh `claude -p` process fed `prompts/coding-agent.md`. Process exits naturally after the tick. The **outer dispatcher** script (`scripts/dispatcher.sh`, shown inline above) decides whether to spawn another and how many to keep in flight.
 
-The e2e agent is the one exception — long-lived `/loop` process — because:
+```bash
+# Coding-agent spawn (per-tick)
+nohup claude -p "$(cat $SKILL_ROOT/prompts/coding-agent.md)" \
+  --dangerously-skip-permissions \
+  > "/tmp/om-agent-coding-<ts>-<i>.log" 2>&1 &
+
+# E2E singleton spawn (one long-lived process per orchestration run)
+nohup claude -p "/loop ${E2E_POLL_CADENCE_SECONDS}s $(cat $SKILL_ROOT/prompts/e2e-agent.md)" \
+  --dangerously-skip-permissions \
+  > "/tmp/om-agent-e2e.log" 2>&1 &
+```
+
+The e2e agent is the one exception to per-tick — long-lived `/loop` process — because:
 - E2E jobs are higher-latency (5-15 min); spawning a fresh process per poll is wasteful.
 - The singleton invariant is easier to enforce with one persistent process than per-tick spawn.
-- E2E /loop self-terminates via `idle_exit_ticks` rule.
+- E2E `/loop` self-terminates via the `idle_exit_ticks` rule (the prompt embeds this exit logic).
+
+**Critically: neither prompt file is registered in the Skill router.** `coding-agent.md` and `e2e-agent.md` are content the dispatcher reads at runtime. They never load at session start. They never appear in `/skills` listings. They cost zero session-context tokens.
 
 Logs to `/tmp/om-agent-coding-<timestamp>-<i>.log` and `/tmp/om-agent-e2e.log`. The user can `tail -f` to watch. On macOS, log retention is the user's responsibility (cron or manual cleanup); future hardening could rotate.
 
@@ -413,17 +487,21 @@ After #1 ships, #2 + #4 + #5 + #7 release simultaneously — 4 in flight (within
 
 **Dependency-cycle prevention**: dispatcher refuses to release any issue with a cycle in its `Blocked by` chain. Logs and posts a `status:blocked` issue for human resolution.
 
-## Phasing
+## Phasing — compressed toward v1.14.0 oneshot goal
 
-Reordered per analysis N2 — Phase 3 swapped from "parallel CTO" (low payoff) to "auto-merge + recovery + Projects v2" (closes the oneshot loop).
+The user clarified: **v1.14.0 (oneshot-complete) is the goal, not three independent releases.** v1.12.0 and v1.13.0 are down-payments on v1.14.0, not standalone deliverables. Each release pulls forward as much v1.14.0 surface as possible so the final release is "turn on the last pieces," not "add a third major thing."
 
 | Phase | Ship | Why this order | Version |
 |---|---|---|---|
-| **1 — E2E singleton + label vocabulary + bootstrap UX + BC fallback** | `om-orchestrate init` skill, `om-e2e-runner` skill, `.ai/orchestration.yml` schema, label set, `om-implement-spec` patched to enqueue (with singleton-detect fallback for v1.11.6 BC), Communication style enforced. **No multi-agent yet — singleton mode validates the protocol on a single coding agent + the e2e singleton.** | Cheapest validation. Fixes v1.11.5 root cause (sleeping). Tests on PRM Spec #6 in single-agent + singleton mode. | v1.12.0 |
-| **2 — Multi-agent coding + dispatcher + claim protocol** | `om-orchestrate` outer dispatcher, `/om-pr-tick`, claim protocol, multi-PR conflict auto-resolve. | Builds on phase 1 labels. Tested on PRM Specs #6 + #7 in parallel. | v1.13.0 |
-| **3 — Auto-merge + failure recovery + Projects v2 view** | Auto-merge contract, full failure-recovery rules, GitHub Projects v2 status field migration, kanban view for humans. | Closes the oneshot loop — typing `/om-orchestrate <app-spec>` produces merged PRs with no human merge step. | v1.14.0 |
+| **1 — Singleton mode + auto-merge for single-agent** | New `om-orchestrate` skill (with init / run / status / stop subcommands). E2E singleton via `prompts/e2e-agent.md`. Coding-agent prompt at `prompts/coding-agent.md` covers full lifecycle (claim → code → enqueue e2e → resume → review → **auto-merge**). `.ai/orchestration.yml` schema with all v1.14.0 fields populated. Label vocabulary. Bootstrap (`init` subcommand). Lean GitHub language baked into the new prompts (also retroactively patches the auto-* trio's verbose templates — see "v1.11.7 retired"). `om-implement-spec` Step 8 patched additively (singleton-detect fallback). **Cost telemetry instrumented from day 1.** | Cheapest validation. Fixes v1.11.5 root cause (sleeping). Auto-merge in single-agent mode is trivial (no conflict possible) and ships now so v1.14.0 doesn't have to add it. Tests on PRM Spec #6 end-to-end (single-agent + singleton + auto-merge). | v1.12.0 |
+| **2 — Multi-agent + claim protocol + conflict auto-rebase** | Outer dispatcher (`scripts/dispatcher.sh`) keeps N coding agents in flight. Claim protocol (corrected single-instance label + verify-after-add). Multi-PR conflict auto-rebase on merge failure. Cost baseline measured against Phase 1 numbers. | Turns on parallelism for the already-merging system. Tests on PRM Specs #6 + #7 in parallel + auto-merge. | v1.13.0 |
+| **3 — Failure recovery + Projects v2 view** | Full failure-recovery rules (stale-claim recovery, mid-job e2e crash, dispatcher crash, machine reboot — see Failure recovery section). GitHub Projects v2 status field migration with kanban view. | Closes the oneshot loop. Auto-merge already shipped in v1.12.0; multi-agent already shipped in v1.13.0. v1.14.0 is "turn on the last two pieces." Validated by killing agents mid-spec and watching the system recover; first oneshot run on a non-PRM OM project. | v1.14.0 |
 
-Each phase ships independently and proves itself before the next. Each comes with a forensic spec if/when the validation surface produces issues worth recording.
+**v1.11.7 retired as its own release.** Per the context-budget rule, the lean GitHub language style ships as part of v1.12.0's new agent prompts (which are lean from the start) AND v1.12.0's patches to the existing auto-* trio's verbose summary templates. Saves a release-ceremony round; same end state.
+
+**Total estimated wall-time to v1.14.0**: ~1 week of focused work (Phase 1 ~2 days, Phase 2 ~3 days, Phase 3 ~1-2 days).
+
+**Validation surface throughout**: PRM Specs #6 + #7 carry the protocol through Phase 1 + Phase 2; the next greenfield OM project is the v1.14.0 oneshot proving ground.
 
 ## BC strategy — v1.11.6 → v1.12.0 transition
 
@@ -512,6 +590,20 @@ Use Phase 1's single-agent runs on PRM #6 as the baseline. Multiply through to e
 - v1.11.5 (`/loop` self-pace anti-pattern) — fixed *symptom* (agents sleeping); this design fixes *cause* (no peer to yield to).
 - v1.11.6 (post-PR review gate) — fixed *symptom* (review skipped); this design integrates review as a peer agent in the state machine.
 - v1.11.3 (duplicate-work prevention) — labels protocol generalizes the existing `in-progress` lock used by `auto-create-pr` / `auto-continue-pr`. The new `claim:*` primitive fixes the race condition that v1.11.3's PR-level lock didn't cover.
-- **v1.11.7 (parallel ship, not prerequisite)** — codifies the lean GitHub communication style across `om-auto-create-pr`, `om-auto-continue-pr`, `om-auto-review-pr`, `om-implement-spec`. Replaces existing verbose summary templates with the short-form shape documented here. Can ship in parallel with this design's Phase 1; not a hard prerequisite.
+- **v1.11.7 — RETIRED as its own release.** Per context-budget rule, the lean GitHub communication style ships as part of v1.12.0 (new agent prompts are lean from inception, plus v1.12.0 patches the existing auto-* trio's verbose summary templates). Memory rule already saved (`feedback_lean_github_communication.md`); the codification ships with v1.12.0's other patches.
 
-PRM Specs #6 and #7 ARE the validation surface for this design. Phase 1 validates on #6 (single agent + singleton). Phase 2 validates on #7 (multi-agent + parallel). Phase 3 validates on the next greenfield OM project (oneshot end-to-end).
+PRM Specs #6 and #7 ARE the validation surface for this design. Phase 1 (v1.12.0) validates on #6 (single agent + singleton + auto-merge). Phase 2 (v1.13.0) validates on #7 (multi-agent + parallel + conflict auto-rebase). Phase 3 (v1.14.0) validates on the next greenfield OM project (oneshot end-to-end with failure recovery).
+
+## Context-budget summary
+
+| Surface | Cost at session start | When loaded |
+|---|---|---|
+| `om-orchestrate` skill frontmatter (the only new top-level entry) | ~150 tokens | Always (any project with om-superpowers) |
+| `references/*.md` (agent contracts, claim protocol, dispatcher, recovery, etc.) | 0 | On-demand when `om-orchestrate` reads them |
+| `prompts/*.md` (coding-agent, e2e-agent, merge-agent) | 0 | On-demand when dispatcher feeds to `claude -p` |
+| `scripts/dispatcher.sh` | 0 | Executed by `om-orchestrate run`, never loaded as context |
+| Patches to `om-implement-spec`, `om-cto`, auto-* trio | ~0-10 tokens each (small Rules/Step additions) | Only when those skills are invoked |
+
+**Total session-start tax for the entire orchestration system: ~150 tokens** — equivalent to one small skill, not five.
+
+This is the right place to enforce the discipline. v1.12.0 ships ~150 token tax; v1.13.0 + v1.14.0 should add **zero net tokens** to session start (all new logic in references and prompts). Drift will be caught during code review on each release.
