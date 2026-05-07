@@ -845,6 +845,7 @@ After implementing an extension, verify all files exist:
 
 ## Rules
 
+- **MUST route suspected OM core bugs through `om-cto` before any workaround.** UMES extensions exist precisely so you don't have to fork OM core, but sometimes core itself behaves wrong (enricher pipeline drops fields, interceptor `before` hook context is incomplete, mutation-guard event signatures don't match docs, ejection seems forced because "core is broken"). When that happens, invoke `om-cto` with `references/upstream-bug-triage.md`. om-cto verifies the bug, returns a verdict (not-a-bug / already-reported / confirmed-new-bug) plus a workaround-size classification (minor → apply+file upstream issue+file downstream removal-trigger task; major → wait-for-upstream+file blocker). Eject only after the verdict is `confirmed-new-bug` AND `wait-for-upstream` is unacceptable AND user approves the eject — never as a silent workaround. Reason: silent workaround/ejection accumulation hides real UMES + core bugs from the OM team and burns the very BC guarantees the extension system was designed to provide.
 - **MUST** run `yarn generate` after adding any extension file
 - **MUST** use i18n keys for all user-facing strings
 - **MUST** implement `enrichMany` when creating Response Enrichers

@@ -1,5 +1,51 @@
 # Changelog
 
+## 1.12.1
+
+### Added — upstream-bug-triage discipline
+
+Suspected OM core (`@open-mercato/*`) bugs no longer get silent workarounds. Any om-superpowers agent that finds itself thinking "OM is broken, let me work around it" MUST route through `om-cto/references/upstream-bug-triage.md` before patching. om-cto verifies the bug, drafts the upstream issue + downstream tracking task, returns a verdict (`not-a-bug` / `already-reported` / `confirmed-new-bug`) and a workaround-size classification (`minor` / `major`); the calling agent does the actual `gh issue create` filings and applies the patch (or stops and reports to user).
+
+**Driven by** the user's observation that downstream agents accumulate undocumented workarounds whenever core misbehaves — three failure modes: real bugs never reach the OM core team, workarounds without removal triggers outlast their cause by years, and "minor for now" workarounds become permanent because no one remembers they were temporary.
+
+#### Workaround size rule
+
+| Class | Definition | Recommendation |
+|-------|------------|----------------|
+| **Minor** | ≤50 LOC, single downstream file, no abstraction leakage, no public API surface touched, no repetition of upstream logic. | Apply workaround AND file upstream issue + downstream removal-trigger task. |
+| **Major** | >50 LOC, OR multi-file, OR leaks abstractions, OR forks/copies upstream logic, OR would repeat at every call site. | Wait for upstream fix. File upstream + downstream blocker. Stop the run. Report to user. |
+
+A 30-LOC change that wraps a core helper across 5 call sites = **major** (leaks into the call graph). A 60-LOC change that's a single guard at one call site with a clear `// remove when @open-mercato/<pkg>#<N> ships` marker = **minor** (containable, removable). When in doubt, recommend major — workaround tech debt outlasts the original deadline.
+
+#### Paper trail required
+
+Every workaround MUST have:
+1. An upstream issue at `open-mercato/open-mercato`.
+2. A downstream tracking task with a removal-trigger marker.
+3. A code comment of the form `// remove when @open-mercato/<pkg>#<N> ships`.
+
+`om-code-review` flags any workaround missing any of those three as **Critical**, regardless of size.
+
+#### Files touched
+
+- `skills/om-cto/references/upstream-bug-triage.md` (new) — verification protocol, verdict matrix, size rule, issue/task templates, om-cto-does-not-file boundary.
+- `skills/om-cto/SKILL.md` — Task Router row + new triggers ("upstream bug", "OM core seems broken", "workaround for OM").
+- `skills/om-troubleshooter/SKILL.md` — Rules section, route-through-om-cto rule.
+- `skills/om-auto-create-pr/SKILL.md` — Rules section, route-through-om-cto rule scoped to step 6 (implementation).
+- `skills/om-auto-continue-pr/SKILL.md` — Rules section, route-through-om-cto rule scoped to the resume path (resume agents are at especially high risk of mistaking "core misbehaves" for "push past this").
+- `skills/om-system-extension/SKILL.md` — Rules section, route-through-om-cto rule (eject is allowed only after `confirmed-new-bug` + `wait-for-upstream` unacceptable + user approval).
+- `skills/om-code-review/SKILL.md` — new "Silent Upstream Workarounds (Critical)" sub-section in Quick Rule Reference.
+- `skills/om-orchestrate/prompts/coding-agent.md` — Rules section, autonomous-fleet variant of the rule (route through om-cto, on `wait-for-upstream` set `status:blocked`+post upstream link+exit).
+- `README.md` — v1.12.1 callout above the v1.12.0 callout describing the new triage discipline.
+- `.claude-plugin/plugin.json` + `.claude-plugin/marketplace.json` — version 1.12.1.
+- `CHANGELOG.md` — this entry.
+
+#### What this is NOT
+
+- NOT a new top-level skill (per the v1.12.0 surface-budget rule). The triage logic lives as an on-demand reference inside `om-cto`.
+- NOT a replacement for ejection — ejection is still the last resort when UMES is genuinely insufficient. Triage clarifies whether the trigger for ejection is real or imagined.
+- NOT a gate that blocks legitimate fast paths — `not-a-bug` verdicts return correct usage in the same hop, no filings needed.
+
 ## 1.12.0
 
 ### Added — `om-orchestrate` skill (Phase 1 of the road to v1.14.0 oneshot)

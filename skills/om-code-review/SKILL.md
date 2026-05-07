@@ -147,6 +147,10 @@ These are the highest-impact rules. For the full checklist, see `references/revi
 - **API responses**: may add fields; MUST NOT remove existing fields
 - **Any PR touching a contract surface** MUST reference a spec with a "Migration & Backward Compatibility" section
 
+### Silent Upstream Workarounds (Critical)
+
+- **Flag silent OM upstream workarounds as Critical.** When a PR contains code that compensates for `@open-mercato/*` behavior — guards around core helpers returning unexpected shapes, casts that mask wrong types, repeated logic that should live upstream, comments like "core does X wrong" / "hack:" / "workaround:" / "FIXME core" — the PR MUST reference (a) an upstream issue at `open-mercato/open-mercato`, AND (b) a downstream tracking task with a removal-trigger marker, AND the workaround code MUST contain a marker comment of the form `// remove when @open-mercato/<pkg>#<N> ships`. If any of those three is missing, flag as **Critical** and require the author to run `om-cto` with `references/upstream-bug-triage.md` before merge. Reason: silent workarounds hide real bugs from the OM core team and create unbounded downstream tech debt that no future refactor can find. This applies regardless of workaround size — minor workarounds also need the paper trail.
+
 ### Architecture (Critical/High)
 
 - **NO direct ORM relationships between modules** — use FK IDs, fetch separately

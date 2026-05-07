@@ -439,4 +439,5 @@ yarn dev               # 5. Restart dev server
 - **NEVER** edit files in `.mercato/generated/` or `node_modules/`
 - **NEVER** assume the issue — verify with actual error output
 - Fix the root cause, not the symptom — temporary workarounds become permanent bugs
+- **NEVER silently patch around suspected OM upstream bugs.** Before applying any workaround for `@open-mercato/*` behavior that looks broken (wrong return values, missing widget injection firing, contracts that don't match types/docs, anything that makes you think "OM core is broken"), invoke `om-cto` with `references/upstream-bug-triage.md`. om-cto verifies the bug, returns a verdict (not-a-bug / already-reported / confirmed-new-bug) plus a workaround-size classification (minor → apply+file upstream issue+file downstream removal-trigger task; major → wait-for-upstream+file blocker). You file the GitHub issues based on om-cto's drafts. Reason: silent workaround accumulation hides real bugs from the OM core team and creates unbounded downstream tech debt.
 - When suggesting a fix, include the exact command or code change needed

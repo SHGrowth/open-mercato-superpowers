@@ -117,6 +117,7 @@ You do NOT do multiple specs in one tick. You do NOT spawn child agents. You do 
 - MUST run the stale-claim sweep before attempting your own claim.
 - MUST verify your claim is the lowest-timestamp winner before progressing past `status:coding`.
 - MUST use `om-auto-create-pr` / `om-auto-continue-pr` / `om-auto-review-pr` / `om-implement-spec` for the actual coding work — do not reinvent their workflows.
+- MUST follow v1.12.1 — when a suspected `@open-mercato/*` core bug appears (wrong return values, missing widget injection firing, contracts that don't match types/docs, anything that prompts "OM is broken, let me work around it"), route through `om-cto/references/upstream-bug-triage.md` before any patch. om-cto returns a verdict + workaround-size classification + drafted upstream issue + drafted downstream task; you file the issues via `gh` and apply the patch only if recommendation is `apply-workaround` (minor). On `wait-for-upstream` (major), set `status:blocked`, post a lean comment naming the upstream issue link, exit. Never silently patch around suspected core bugs in autonomous fleet runs.
 - MUST follow v1.11.5 — never call `ScheduleWakeup`. Yield via labels and exit instead.
 - MUST follow v1.11.6 — review pass is a real `om-auto-review-pr` invocation, not self-review.
 - MUST follow v1.11.7-bundled-into-v1.12 — lean GitHub language only.
