@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# claude-validated — wrap claude -p with output validation
+# Usage: claude-validated [prompt] [--model X] [--max-turns N]
+#
+# Source spec: agents-master/improvements/I018.md (2026-05-09).
+#
+# DOWNSTREAM PATCH (om-superpowers session 2026-05-09): I018's spec used
+# `cat` inside the retry loop, but stdin is consumed by retry 0 — retries
+# 1+ then received only LOCALE_RULE with no original prompt, and the model
+# emitted orientation messages instead of retried-answer-with-reinforcement
+# (verified in transcripts ebe81bf5 / 55c66170 / 14451927). Fix: buffer
+# stdin to $PROMPT once at top, re-emit on each iteration. 3-line change,
+# aligned with spec intent (retry-with-reinforcement), does not modify
+# spec semantics. Synced back to agents-master as implementation note.
+
+set -euo pipefail
+RUN_ID=$(date +%s)-$$
+LOG=/tmp/claude-validated-${RUN_ID}.log
+MAX_RETRIES=2
+RETRY=0
+PROMPT=$(cat)  # buffer stdin once; retries re-emit instead of re-reading
+
+# Pass-through to claude -p with locale-restrictive system addendum
+LOCALE_RULE="Output MUST be in English regardless of user input language. This applies to ALL prose, including hedges, qualifiers, and persona references. Output in any other language fails validation."
+
+while [ $RETRY -le $MAX_RETRIES ]; do
+  # Concat user prompt with locale rule via stdin
+  { echo "$LOCALE_RULE"; echo; printf '%s\n' "$PROMPT"; } | claude -p "$@" 2>&1 | tee "$LOG"
+
+  # Run validators
+  FAIL=0
+
+  # Check 1: zero unfractioned percentages
+  if grep -qE "[0-9]+(\.[0-9]+)?%" "$LOG" && ! grep -qE "[0-9]+/[0-9]+" "$LOG"; then
+    echo "VALIDATOR FAIL #1: percentage emitted without fraction" >&2
+    FAIL=1
+  fi
+
+  # Check 2: zero hedges (English only — locale-restricted)
+  if grep -iqE "\b(approximately|around|roughly|approx\.|~[0-9])\b" "$LOG"; then
+    echo "VALIDATOR FAIL #2: hedge word emitted (output must be measured or absent)" >&2
+    FAIL=1
+  fi
+
+  # Check 3: zero persona invocation
+  if grep -iqE "\b(piotr|cagan|piotr-style|cagan-style)\b" "$LOG"; then
+    echo "VALIDATOR FAIL #3: persona invoked as label (cite rule number, not persona name)" >&2
+    FAIL=1
+  fi
+
+  # Check 4: locale check — non-English fabrication-correlated content
+  # Heuristic: presence of common Polish hedges that S011 surfaced
+  if grep -iqE "\b(szacunkowo|około|mniej więcej|w przybliżeniu)\b" "$LOG"; then
+    echo "VALIDATOR FAIL #4: non-English hedge emitted (locale-restrictive: output must be English)" >&2
+    FAIL=1
+  fi
+
+  # Check 5: any forward-looking effort estimate without enumeration
+  if grep -iqE "\b([0-9]+[-–][0-9]+|[0-9]+) (modules?|moduł[ów]*|weeks?|tygodni|sprints?|sprintów)\b" "$LOG" \
+     && ! grep -qE "^[0-9]+\.\s+\`(Read|gh search code)\b" "$LOG"; then
+    echo "VALIDATOR FAIL #5: effort estimate without per-item enumeration" >&2
+    FAIL=1
+  fi
+
+  if [ $FAIL -eq 0 ]; then
+    echo "VALIDATOR PASS (run $RUN_ID, retry $RETRY)" >&2
+    exit 0
+  fi
+
+  RETRY=$((RETRY + 1))
+  if [ $RETRY -le $MAX_RETRIES ]; then
+    echo "Retry $RETRY of $MAX_RETRIES after validator FAIL..." >&2
+    # Inject reinforcement into next attempt
+    LOCALE_RULE="$LOCALE_RULE
+
+Previous attempt FAILED validation. Re-emit with: zero percentages without N/M fraction, zero hedge words (approximately/around/roughly/szacunkowo/około), zero persona names (Piotr/Cagan), zero forward effort estimates without per-item enumeration. The previous output is at $LOG — read it to see what was rejected."
+  fi
+done
+
+echo "VALIDATOR FAIL after $MAX_RETRIES retries — surfacing to user" >&2
+exit 1
