@@ -1,6 +1,6 @@
 ---
 name: om-integration-builder
-description: Build integration provider packages for the Open Mercato Integration Marketplace. Use when creating new external integrations (payment gateways, shipping carriers, data sync connectors, communication channels, storage providers, webhook endpoints). Handles npm package scaffolding, adapter implementation, credentials, widget injection, webhook processing, health checks, i18n, and tests. Triggers on "build integration", "create integration", "add provider", "new connector", "integrate with", "add stripe/paypal/dhl/sendgrid" etc.
+description: Build integration provider packages for the Open Mercato Integration Marketplace — payment gateways, shipping carriers, data-sync connectors, communication channels, storage, webhooks. Scaffolds the npm package with adapter, credentials, widgets, webhook handlers, health checks, i18n, tests.
 ---
 
 # Integration Builder

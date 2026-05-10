@@ -1,6 +1,6 @@
 ---
 name: om-backend-ui-design
-description: Design and implement consistent, production-grade backend/backoffice interfaces using the @open-mercato/ui component library. Use this skill when building admin pages, CRUD interfaces, data tables, forms, detail pages, or any backoffice UI components. Ensures visual consistency and UX patterns across all application modules.
+description: Design and implement consistent, production-grade backend/backoffice interfaces using the @open-mercato/ui component library. Use for admin pages, CRUD interfaces, data tables, forms, detail pages, and any backoffice UI components.
 ---
 
 This skill guides creation of consistent, production-grade backend/backoffice interfaces using the established @open-mercato/ui component library. All implementations must leverage existing components to maintain visual and behavioral consistency across modules.

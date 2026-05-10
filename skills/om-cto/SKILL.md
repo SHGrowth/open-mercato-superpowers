@@ -1,6 +1,6 @@
 ---
 name: om-cto
-description: "Use for OM platform gap analysis, architecture decisions, or to orchestrate spec writing and implementation. Also handles pre-implementation BC/risk analysis (triggers on 'analyze spec', 'BC analysis', 'spec readiness', 'check spec impact', 'what can go wrong', 'before we start coding'), skill-corpus audits (triggers on 'review skills', 'audit toolkit', 'skill health check', 'are skills bloated', 'context budget'), and upstream bug triage (triggers on 'OM upstream bug', 'OM core seems broken', 'workaround for OM', 'core function is wrong', 'should we patch around this'). Routes via Task Router to the right reference. Triggers on 'does OM already do X', 'write specs from app spec', 'implement approved specs', or standalone architecture questions."
+description: Open Mercato architecture skill — gap analysis, BC/risk analysis, skill-corpus audits, upstream bug triage, and orchestrating spec writing or implementation. Routes via Task Router. Triggers — "does OM do X", "analyze spec", "BC analysis", "review skills", "OM upstream bug", "write specs", "implement specs".
 ---
 
 # om-cto

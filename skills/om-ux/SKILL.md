@@ -1,6 +1,6 @@
 ---
 name: om-ux
-description: "Use when defining UI architecture, reviewing page layouts, navigation structure, widget placement, or user flow within the app. Triggers on 'what should the user see', 'where does this go in the UI', 'what pages do we need', or when reviewing App Spec §3.5 UI Architecture."
+description: Use when defining UI architecture, reviewing page layouts, navigation, widget placement, or user flow. Triggers — "what should the user see", "where does this go in the UI", "what pages do we need", or App Spec §3.5 UI Architecture reviews.
 ---
 
 # Krug

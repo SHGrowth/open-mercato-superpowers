@@ -1,6 +1,6 @@
 ---
 name: om-troubleshooter
-description: Diagnose and fix common issues in Open Mercato standalone apps. Use when encountering errors, unexpected behavior, modules not loading, widgets not appearing, migrations failing, build errors, or any "it doesn't work" situation. Triggers on "error", "not working", "broken", "fix", "debug", "why isn't", "can't", "fails", "crash", "missing", "404", "500", "module not found", "widget not showing".
+description: Diagnose and fix common issues in Open Mercato standalone apps — errors, modules not loading, widgets missing, failed migrations, build errors. Triggers — "error", "not working", "broken", "fix", "debug", "404", "500", "module not found".
 ---
 
 # Troubleshooter

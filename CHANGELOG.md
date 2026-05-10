@@ -1,5 +1,60 @@
 # Changelog
 
+## 1.15.1
+
+### Fixed — skill description budget (frontmatter trim across all 19 skills)
+
+`/doctor` was reporting **29 skill descriptions dropped** from the system-prompt skill listing. Root cause: om-superpowers ate ~8.6KB of the global description budget on its own, with seven skills exceeding 500 chars of frontmatter `description:` and the worst (`om-system-extension` at 788, `om-cto` at 757) packing full trigger keyword lists into the field meant for a 1-2 sentence hint.
+
+Anthropic's skill-spec guidance keeps `description:` short on purpose — it's injected verbatim into the system prompt for every Claude Code session, and the budget is a hard cap. When exceeded, late-loading skills (third-party plugins, user skills) get listed name-only, losing the description Claude uses to decide when to load them.
+
+#### What ships
+
+Every SKILL.md frontmatter `description:` rewritten to ≤315 chars while preserving the key trigger keywords. No behavior changes — only frontmatter. Body content untouched.
+
+| skill | before | after |
+|---|---|---|
+| om-system-extension | 788 | 291 |
+| om-cto | 757 | 309 |
+| om-ds-guardian | 637 | 279 |
+| om-auto-create-pr | 610 | 315 |
+| om-orchestrate | 601 | 229 |
+| om-auto-continue-pr | 551 | 255 |
+| om-integration-builder | 532 | 292 |
+| om-auto-review-pr | 450 | 302 |
+| om-implement-spec | 422 | 265 |
+| om-troubleshooter | 397 | 238 |
+| om-data-model-design | 393 | 232 |
+| om-code-review | 391 | 254 |
+| om-integration-tests | 345 | 249 |
+| om-module-scaffold | 340 | 223 |
+| om-backend-ui-design | 326 | 231 |
+| om-user-proxy | 304 | 227 |
+| om-ux | 275 | 240 |
+| om-product-manager | 269 | 269 (untouched, already short) |
+| om-spec-writing | 189 | 189 (untouched, already short) |
+
+**Total: 8,577 → 4,889 chars (-43%, saved 3,688 chars).** Should recover the 29 dropped descriptions in `/doctor`; verifies after `/plugin update om-superpowers`.
+
+### Files touched
+
+- 17 × `skills/*/SKILL.md` — frontmatter `description:` field only
+- `.claude-plugin/plugin.json` — version bump
+- `.claude-plugin/marketplace.json` — version bump
+
+### Follow-up — synced skills will regress on next `sync-om-skills.sh`
+
+10 of the 17 trimmed skills are vendored from upstream `open-mercato/open-mercato`. Their `description:` fields will be overwritten back to the long form when the sync script next runs. To make this permanent, upstream PRs are needed against `.ai/skills/` and `packages/create-app/agentic/shared/ai/skills/` in the OM core repo.
+
+**Synced (need upstream PR to stay trimmed):**
+- `om-implement-spec`, `om-code-review`, `om-spec-writing`, `om-backend-ui-design`, `om-integration-builder`, `om-integration-tests` ← `.ai/skills/`
+- `om-data-model-design`, `om-module-scaffold`, `om-system-extension`, `om-troubleshooter` ← `packages/create-app/agentic/shared/ai/skills/`
+
+**Local-only (trim is permanent):**
+- `om-cto`, `om-ds-guardian`, `om-orchestrate`, `om-auto-create-pr`, `om-auto-continue-pr`, `om-auto-review-pr`, `om-user-proxy`
+
+Tracked separately per `feedback_no_silent_upstream_workarounds` — this release is the downstream patch; the upstream task is the permanent fix.
+
 ## 1.15.0
 
 ### Added — upstream patch handoff (producer convention + consumer drain protocol)

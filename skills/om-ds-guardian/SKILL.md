@@ -1,6 +1,6 @@
 ---
 name: om-ds-guardian
-description: Use when working on Open Mercato frontend UI — building backend pages, migrating hardcoded colors or typography, reviewing PR diffs for design-system compliance, scaffolding new pages, or running DS health checks. Triggers on hardcoded status colors (`text-red-*`, `bg-green-*`, `text-emerald-*`, `bg-amber-*`), arbitrary text sizes (`text-[Npx]`), raw HTML form controls (`<input>`, `<select>`, `<textarea>`, `<input type="checkbox|radio">`), `disabled:opacity-50`, hardcoded brand hex, missing empty/loading states, deprecated `Notice`, or developer requests like "DS review", "migrate colors", "DS health", "design system compliance".
+description: Open Mercato design-system enforcement — flag hardcoded colors/typography, raw HTML form controls, missing empty/loading states; build DS-compliant backend pages; run DS health checks. Triggers — "DS review", "migrate colors", "DS health", `text-red-*`, raw `<input>`/`<select>`.
 ---
 
 # DS Guardian — Design System Enforcement Agent

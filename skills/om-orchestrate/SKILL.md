@@ -1,6 +1,6 @@
 ---
 name: om-orchestrate
-description: Run a fully autonomous parallel agent fleet that ships OM apps end-to-end via GitHub Issues + PRs without human babysitting. Subcommands - `init` bootstraps the repo (config, labels, gh auth check), `run` starts the orchestration against an App Spec or execution plan, `status` reports read-only state, `stop` halts gracefully. Use when the user says "orchestrate", "run autonomous", "oneshot the app", "ship all specs", or any variant that implies multi-spec / multi-PR autonomous delivery. Triggers on "orchestrate", "oneshot", "autonomous fleet", "ship the app", "run all specs", "/om-orchestrate".
+description: Fully autonomous parallel agent fleet that ships OM apps end-to-end via GitHub Issues + PRs. Subcommands — `init`, `run`, `status`, `stop`. Triggers — "orchestrate", "oneshot", "ship the app", "run all specs", "autonomous fleet".
 ---
 
 # om-orchestrate

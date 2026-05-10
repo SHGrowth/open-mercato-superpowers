@@ -1,6 +1,6 @@
 ---
 name: om-system-extension
-description: Extend core modules using the Universal Module Extension System (UMES). Use when adding columns/fields/filters to existing tables/forms, enriching API responses, intercepting API routes, blocking/validating mutations, replacing UI components, injecting menu items, or reacting to domain events. Also covers module ejection as a last-resort path when UMES is insufficient (triggers on "eject", "customize module", "modify core module", "override module", "fork module", "should I eject" — the eject workflow lives in references/eject.md and the skill loads it on demand). Triggers on "extend", "add column to", "add field to", "inject into", "intercept", "enrich", "hook into", "customize", "override component", "add menu item", "react to event", "block mutation", "validate before save".
+description: Extend core modules via UMES — add columns/fields/filters, intercept APIs, replace components, inject menu items, react to events, validate mutations. Also covers module ejection as a last resort. Triggers — "extend", "add column to", "intercept", "customize", "override component", "eject".
 ---
 
 # System Extension — UMES Wizard
