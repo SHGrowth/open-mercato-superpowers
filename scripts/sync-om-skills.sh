@@ -361,9 +361,48 @@ for doc_path in "${DOCS[@]}"; do
 done
 echo ""
 
+# =====================================================================
+# Section 5: Generate canonical AGENTS.md template for consumer apps
+# =====================================================================
+#
+# Fetches packages/create-app/agentic/shared/AGENTS.md.template from upstream
+# and pipes through scripts/transform-agents-template.py, which rewrites
+# `.ai/skills/<name>/SKILL.md` references to `om-superpowers:om-<canonical>`
+# invocations, drops rows for skills with no plugin equivalent (auto-*-loop,
+# auto-fix-github, auto-upgrade-0.4.10-to-0.5.0, trim-unused-modules),
+# prepends a versioned marker, writes templates/AGENTS.md. The hook
+# (hooks/session-start) reads this template at runtime and offers to align
+# consumer-app AGENTS.md with it on first session start.
+#
+# Plugin version for the marker comes from .claude-plugin/plugin.json so
+# the canonical's marker line always matches the version that shipped it.
+
+echo "=== Generating canonical AGENTS.md template ==="
+echo ""
+
+AGENTS_TEMPLATE_URL="${AGENTS_BASE_URL}/packages/create-app/agentic/shared/AGENTS.md.template"
+AGENTS_TEMPLATE_DEST="${PLUGIN_ROOT}/templates/AGENTS.md"
+TEMPLATE_TMP=$(mktemp)
+
+PLUGIN_VERSION=$(grep -E '^[[:space:]]*"version"' "${PLUGIN_ROOT}/.claude-plugin/plugin.json" | head -1 | sed -E 's/.*"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
+
+echo "  Plugin version (for marker): ${PLUGIN_VERSION}"
+echo "  Fetching ${AGENTS_TEMPLATE_URL}..."
+
+if fetch_file "$AGENTS_TEMPLATE_URL" "$TEMPLATE_TMP"; then
+  python3 "${SCRIPT_DIR}/transform-agents-template.py" "$TEMPLATE_TMP" "$AGENTS_TEMPLATE_DEST" "$PLUGIN_VERSION"
+  template_status="ok"
+else
+  echo "  WARN: upstream AGENTS.md.template fetch failed — templates/AGENTS.md left at previous content"
+  template_status="failed"
+fi
+
+rm -f "$TEMPLATE_TMP"
+echo ""
+
 echo "Done. Source commit: ${COMMIT_SHA:0:7}"
 echo ""
 echo "Next steps:"
-echo "  git diff skills/ om-reference/"
-echo "  git add skills/ om-reference/"
-echo "  git commit -m \"chore: sync OM skills + references from ${REPO}@\${COMMIT_SHA:0:7}\""
+echo "  git diff skills/ om-reference/ templates/"
+echo "  git add skills/ om-reference/ templates/"
+echo "  git commit -m \"chore: sync OM skills + references + AGENTS.md template from ${REPO}@\${COMMIT_SHA:0:7}\""

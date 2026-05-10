@@ -1,5 +1,98 @@
 # Changelog
 
+## 1.17.0 — canonical AGENTS.md template + sync-driven generation + confirm-overwrite flow
+
+### Added — plugin ships its own AGENTS.md routing template
+
+v1.16.1 fixed the SessionStart hook so it stops reinforcing legacy `.ai/skills/` routing. But the underlying problem remained: consumer apps still ship broken AGENTS.md (because `create-mercato-app` template still routes to `.ai/skills/<name>/SKILL.md`), and the v1.16.1 hook only warned about `.ai/skills/` directory contents, not the dangling routing rows in AGENTS.md itself.
+
+v1.17.0 closes that gap by making **plugin om-superpowers the canonical source for the consumer-app `AGENTS.md` routing template**. The plugin ships `templates/AGENTS.md` (sync-generated from upstream `OM/packages/create-app/agentic/shared/AGENTS.md.template` with routing rewrites applied), and the SessionStart hook offers — via user confirmation — to overwrite a misaligned consumer `AGENTS.md` with the canonical.
+
+#### How the sync transform works
+
+`scripts/transform-agents-template.py` (new) reads the upstream template and emits a plugin-canonical version by:
+
+1. **Rewriting `.ai/skills/<name>/SKILL.md` references** to `om-superpowers:om-<canonical>` invocations using a static map. Sub-references (`.ai/skills/<name>/references/<sub>.md`) become `invoke om-superpowers:om-<parent>` (loads `<name>/<sub>`).
+2. **Dropping table rows + prose** that reference skills with no plugin equivalent — `auto-create-pr-loop`, `auto-continue-pr-loop`, `auto-fix-github`, `auto-upgrade-0.4.10-to-0.5.0`, `trim-unused-modules`. Reasons per skill: deprecated (auto-*-loop superseded by `/loop 5m /auto-continue-pr <PR#>` harness cron), one-off (auto-upgrade is a transient framework migration), or scope-mismatch (trim-unused-modules is a post-scaffold utility better suited to create-app's UX, not the plugin).
+3. **Dropping Critical Rule #8** (entirely predicated on `trim-unused-modules` being available) and renumbering subsequent rules 9→8, 10→9, 11→10, 12→11. The Dashboards fallback rule survives because it's still useful when the user disables `dashboards` manually.
+4. **Surgical prose substitutions** for slash-command examples that mention dropped skills (e.g., the `/auto-fix-github 42` example in the Agent Automation section's blurb) and parenthetical asides ("or the `trim-unused-modules` skill" in the Dashboards fallback).
+5. **Replacing `{{PROJECT_NAME}}`** placeholder with `Open Mercato App`.
+6. **Prepending `<!-- om-superpowers:routing:v<plugin-version> -->`** at the top so the hook can detect "already aligned" on subsequent sessions.
+
+The plugin version for the marker is read at sync time from `.claude-plugin/plugin.json`, so the canonical's marker always matches the version that shipped it.
+
+#### Sync-script extension
+
+`scripts/sync-om-skills.sh` Section 5 (new) fetches the upstream template via `curl` and pipes through the transform. Failures (network, upstream 404) leave the previous canonical in place — sync is best-effort, not destructive.
+
+#### Hook detection + confirm-overwrite flow
+
+`hooks/session-start` now detects two new states alongside the v1.16.1 legacy-skills check:
+
+- **No AGENTS.md exists** in the consumer app at all
+- **AGENTS.md exists but lacks `<!-- om-superpowers:routing:v` marker** — likely scaffolded from an older `create-mercato-app` version or never aligned
+
+When either is true, the hook injects an `AGENTS.md Alignment Available` block that instructs the agent (BEFORE responding to the user's actual prompt) to invoke `AskUserQuestion` with a three-option choice — `Yes, align now` / `No, skip this session` / `Show diff first`. On YES: agent backs up the existing `AGENTS.md` to `AGENTS.md.bak`, reads `${CLAUDE_PLUGIN_ROOT}/templates/AGENTS.md`, writes the canonical. On NO: agent doesn't re-prompt this session.
+
+#### Why confirm-and-overwrite (not auto-rewrite, not warn-only)
+
+Three earlier design options were considered:
+
+| Approach | Why rejected |
+|---|---|
+| **Auto-rewrite at SessionStart** | AGENTS.md is user-customizable. Silent rewrite on every session fights user edits. Idempotency markers help but not enough — projects have legitimately project-specific content (env vars, integration test setup, deletion notices) that the canonical doesn't preserve. |
+| **Marker-bounded merge** (canonical inserted between `<!-- om-superpowers:routing:start --><!-- om-superpowers:routing:end -->` markers) | Preserves project-specific content. Considered. The user picked full overwrite explicitly — cleaner separation between plugin-owned routing and consumer-owned everything else, at the cost of asking the user to manually re-merge project-specific notes. |
+| **Warn-only** (v1.16.1 baseline) | Closes nothing — agent still confronts the broken routing on the next prompt. The warning doesn't fix the failure mode that the routing rows point at files that don't exist. |
+
+The chosen design: full overwrite with explicit user confirmation, backup preserved as `.bak`, project-specific content is the consumer's responsibility to re-merge.
+
+#### Lossy-map decisions (transform exceptions)
+
+Five upstream skills don't map cleanly to plugin equivalents. Disposition decided per skill:
+
+| Upstream skill | Status | Rationale |
+|---|---|---|
+| `auto-create-pr-loop` | drop | Advanced spec-implementation variant; plugin's `om-auto-create-pr` is the non-loop fork. Manual port from upstream samples when needed. |
+| `auto-continue-pr-loop` | drop | Same rationale as above |
+| `auto-fix-github` | drop | Real plugin gap (issue → PR autonomously). Not ported in this release; manual cherry-pick when needed |
+| `auto-upgrade-0.4.10-to-0.5.0` | drop | One-off framework migration; not a permanent capability |
+| `trim-unused-modules` | drop | Post-scaffold utility better suited to create-app's UX layer, not the plugin |
+
+If any of these become priority later, they can be brought into the plugin in a separate release and the transform map updated to route them through plugin namespace.
+
+### Smoke-test results
+
+Hook tested against four scenarios — all green:
+
+| Scenario | Legacy warning | Alignment offer | Hook empty `{}`? |
+|---|---|---|---|
+| patryk-standalone (`.ai/skills/` empty, no marker) | NO | YES | — |
+| App #1 (`create-mercato-app --skip-agentic-setup`, no `.ai/skills/`, no marker) | NO | YES | — |
+| App #2 (`create-mercato-app` wizard, `.ai/skills/` has 19 SKILL.md, no marker) | YES | YES | — |
+| `~` (non-OM dir) | — | — | YES |
+
+Transform output verified:
+- 0 references to `.ai/skills/` paths remain
+- 0 mentions of dropped skill names remain
+- Critical Rules renumbered 1–11 (was 1–12)
+- Marker present at line 1
+- 280 lines, 26123 chars (vs upstream's 287 lines, ~27 KB)
+
+### Files touched
+
+- `hooks/session-start` — detection of alignment state + AGENTS.md Alignment Available offer block
+- `scripts/sync-om-skills.sh` — Section 5 (new): fetches and transforms the AGENTS.md template at sync time
+- `scripts/transform-agents-template.py` — new Python helper, ~170 lines, implements the routing rewrites + drops + prose substitutions
+- `templates/AGENTS.md` — new, generated by the transform; 280 lines containing the canonical routing template with marker
+- `.claude-plugin/plugin.json` — version bump 1.16.1 → 1.17.0
+- `.claude-plugin/marketplace.json` — version bump 1.16.1 → 1.17.0
+
+### Migration notes
+
+- Existing consumer apps will see the AGENTS.md Alignment Available block on their first SessionStart with v1.17.0+. Agents will offer to align; users decide per-app. Once aligned, the marker suppresses the offer on subsequent sessions.
+- `templates/AGENTS.md` is committed alongside the script that generates it. Future plugin releases should re-run the sync before tagging so the committed template reflects the upstream-as-of-release. Drift between `templates/AGENTS.md` and upstream is acceptable between syncs.
+- The Python transform's `ROUTING_MAP`, `DROP_SKILLS`, `DROP_BLOCKS`, and `PROSE_REPLACEMENTS` are the authoritative configuration. Adding a new plugin skill that the upstream template references means updating `ROUTING_MAP`; dropping a previously-mapped skill means moving it to `DROP_SKILLS`.
+
 ## 1.16.1 — hook: align session-start with 1.16.0 plugin-only policy
 
 ### Fixed — three misalignments that defeated v1.16.0's "plugin om-* is single source of truth" policy

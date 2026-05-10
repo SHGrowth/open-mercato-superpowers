@@ -43,6 +43,27 @@ if [ -d ".ai/skills" ] && [ -n "$(find .ai/skills -maxdepth 3 -name SKILL.md -pr
   has_legacy_skills_dir=true
 fi
 
+# Detect AGENTS.md alignment state.
+# Under current policy, the plugin ships a canonical AGENTS.md routing template at
+# `${CLAUDE_PLUGIN_ROOT}/templates/AGENTS.md`. Consumer apps that don't have an
+# AGENTS.md at all, or have one without the plugin's routing marker, are offered
+# (via user confirmation) an alignment overwrite. A previously-aligned consumer
+# carries `<!-- om-superpowers:routing:v<X.Y.Z> -->` near the top — that's the
+# receipt that suppresses the offer on subsequent sessions.
+canonical_agents_md="${PLUGIN_ROOT}/templates/AGENTS.md"
+needs_agents_alignment=false
+agents_alignment_reason=""
+
+if [ -f "$canonical_agents_md" ]; then
+  if [ ! -f "AGENTS.md" ]; then
+    needs_agents_alignment=true
+    agents_alignment_reason="no AGENTS.md exists in this consumer app"
+  elif ! grep -q '<!-- om-superpowers:routing:v' AGENTS.md 2>/dev/null; then
+    needs_agents_alignment=true
+    agents_alignment_reason="AGENTS.md exists but lacks the plugin routing marker — likely scaffolded from an older create-mercato-app version or was never aligned to plugin-namespace routing"
+  fi
+fi
+
 # Auto-detect entry point: scan for in-progress execution plans.
 # A plan is "in progress" when it has at least one unchecked checkbox `- [ ]`.
 # This handles both auto-create-pr's strict `Status: in-progress` format and
@@ -212,6 +233,16 @@ Mention to the user that `.ai/skills/` is leftover migration debt and can be rem
 LEGEOF
 
   OM_CONTEXT="${OM_CONTEXT}${LEGACY_SKILLS_WARNING}"
+fi
+
+# AGENTS.md alignment offer — confirm-then-overwrite flow. Triggers when the
+# consumer's AGENTS.md is missing or lacks the plugin routing marker. The hook
+# only emits instructions; the agent does the work after the user confirms.
+# This is the v1.17.0 mechanism that supersedes manual AGENTS.md patching.
+if [ "$needs_agents_alignment" = true ]; then
+  AGENTS_ALIGNMENT_OFFER=$(printf '\n\n## AGENTS.md Alignment Available — Confirm With User Before Overwriting\n\nThe canonical om-superpowers routing template lives at `%s` and contains the up-to-date Task → Plugin Skill map (plugin-namespace invocations, current Critical Rules, Mandatory Module Mechanisms table). The current consumer-app AGENTS.md state: **%s**.\n\n### What to do BEFORE responding to the user'"'"'s actual prompt\n\nInvoke `AskUserQuestion` with a single question — phrase it close to this:\n\n> "Align this app'"'"'s `AGENTS.md` with the om-superpowers canonical routing template? Existing `AGENTS.md` (if any) will be backed up to `AGENTS.md.bak`. The canonical contains updated plugin-namespace routing but may not include project-specific notes from your existing file — you may want to copy those back manually afterwards."\n\nOptions:\n- **Yes, align now** — perform the overwrite (see steps below)\n- **No, skip this session** — do nothing; do not re-prompt this session\n- **Show diff first** — display the diff between the existing `AGENTS.md` and the canonical, then re-ask\n\n### On user YES (align now)\n\n1. If `AGENTS.md` exists, back it up: `Bash` → `cp AGENTS.md AGENTS.md.bak` (overwriting any prior `.bak`)\n2. `Read` `%s`\n3. `Write` the entire canonical content to `AGENTS.md`\n4. Confirm to the user: "Aligned. Backup at `AGENTS.md.bak`. The canonical contains plugin-namespace routing; review the .bak for project-specific notes (env vars, integration setup, module-specific guidance) and merge them back into AGENTS.md manually."\n5. Continue with the user'"'"'s original prompt.\n\n### On user NO (skip this session)\n\nDo not offer again this session. Move on to the user'"'"'s actual prompt.\n\n### Important constraints\n\n- Do NOT overwrite without explicit user confirmation. The canonical does not preserve project-specific content; silent overwrite would destroy it.\n- Do NOT add the user'"'"'s project-specific content to the canonical automatically. The plugin'"'"'s template is intentionally generic; project-specific notes are the consumer'"'"'s responsibility.\n- Do NOT offer this if the user has already declined in the current session (track via your own conversation memory).\n' "$canonical_agents_md" "$agents_alignment_reason" "$canonical_agents_md")
+
+  OM_CONTEXT="${OM_CONTEXT}${AGENTS_ALIGNMENT_OFFER}"
 fi
 
 # Auto-detected entry point recommendation. Fires when project state is detectable
