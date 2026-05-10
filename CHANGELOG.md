@@ -6,6 +6,8 @@
 
 A skill-corpus audit against actual usage data (last 30 days, all projects) showed many "skills" were really specialty references that fired during specific work episodes — not user-typed entry points. They cost ~3,500 chars of always-on description budget for cases the user wasn't directly invoking. v1.16 separates **development-flow skills** (user-facing entry points + always-on pipeline parts) from **ad-hoc references** (loaded by parent skill when a specific kind of work begins).
 
+**Backing data:** [`docs/specs/analysis/ANALYSIS-2026-05-10-skill-corpus-audit.md`](docs/specs/analysis/ANALYSIS-2026-05-10-skill-corpus-audit.md) captures the two-channel mining query (Skill tool invocations + Read activity on skill paths), full data for all 19 skills + 3 already-demoted controls, calibration against the v1.8.0 demotion precedent, caveats, and a 60-day re-audit cadence with a forward ledger path. Reproducible — both queries are in the doc and re-run from any operator's `~/.claude/projects/`.
+
 Pattern is identical to v1.8.0's three-skill demotion (om-pre-implement-spec, om-eject-and-customize, om-toolkit-review): body content moves under parent's `references/` with frontmatter stripped; parent SKILL.md absorbs trigger phrases and adds Task Router rows.
 
 #### Demotions (7 skills → references)
