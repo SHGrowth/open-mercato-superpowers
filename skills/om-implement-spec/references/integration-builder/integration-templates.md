@@ -1,6 +1,6 @@
 # Integration Templates
 
-Code templates for building integration provider packages. Referenced by om-integration-builder.
+Code templates for building integration provider packages. Sibling of `integration-builder.md` under `om-implement-spec/references/integration-builder/`.
 
 ---
 

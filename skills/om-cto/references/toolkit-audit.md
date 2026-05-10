@@ -90,13 +90,13 @@ Multiple skills matching the same user intent causes wrong-skill invocation.
 | User says | Should trigger | Should NOT trigger |
 |-----------|---------------|-------------------|
 | "build this feature" | om-cto (advisory) | om-product-manager |
-| "implement the spec" | om-cto (impl orchestrator) | om-product-manager |
-| "review this code" | base code-review (synced) | om-cto |
-| "create a new module" | om-module-scaffold | om-cto |
-| "extend the customers module" | om-system-extension | (eject is now a reference under it) |
-| "write a spec" | om-cto (spec orchestrator) | om-product-manager |
-| "add an entity" | om-data-model-design | om-module-scaffold |
-| "design the UI" | om-backend-ui-design | om-ux |
+| "implement the spec" | om-implement-spec (or om-cto impl orchestrator) | om-product-manager |
+| "review this code" | om-code-review | om-cto |
+| "create a new module" | om-implement-spec (loads `references/module-scaffold/`) | om-cto |
+| "extend the customers module" | om-implement-spec (loads `references/system-extension/`) | (eject is a sibling sub-reference) |
+| "write a spec" | om-cto (loads `references/spec-writing/`) | om-product-manager |
+| "add an entity" | om-implement-spec (loads `references/data-model-design/`) | (module-scaffold only when whole module is new) |
+| "design the UI" | om-ds-guardian (loads `references/backend-ui-design/`) | om-ux (UX review, not build) |
 | "run tests" | om-integration-tests | om-cto |
 | "this doesn't work" | om-troubleshooter | — |
 
@@ -134,13 +134,13 @@ When om-cto orchestrates, it chains multiple skills. Estimate total context for 
 
 ```
 Chain A (Spec Orchestrator):
-  om-cto SKILL.md + spec-orchestrator.md + base spec-writing + om-cto/references/pre-impl-analysis.md
-  + conditional: om-data-model-design, om-system-extension
+  om-cto SKILL.md + references/{spec-orchestrator.md, spec-writing/, pre-impl-analysis.md, user-proxy.md}
+  + conditional: om-implement-spec/references/{data-model-design, system-extension}/ (loaded only when spec touches those areas)
 
 Chain B (Implementation Orchestrator — per spec):
-  om-cto SKILL.md + impl-orchestrator.md + base implement-spec + base code-review + base integration-tests
-  + conditional: om-module-scaffold, om-backend-ui-design,
-                 om-system-extension, om-troubleshooter
+  om-cto SKILL.md + impl-orchestrator.md + om-implement-spec SKILL.md + om-code-review + om-integration-tests
+  + conditional: om-implement-spec/references/{module-scaffold, system-extension, integration-builder, data-model-design}/,
+                 om-ds-guardian/references/backend-ui-design/, om-troubleshooter
 
 Chain C (Full pipeline — Chain A then Chain B per spec):
   Sum of all above

@@ -45,7 +45,7 @@ If implementation reports blockers, Piotr diagnoses and resolves them before pro
 
 ### Step 3.5 — Proxy pre-triage
 
-Before presenting feedback triage to the user, invoke `om-user-proxy` with the findings. The proxy can resolve:
+Before presenting feedback triage to the user, consult `references/user-proxy.md` (the proxy reference) with the findings. The proxy can resolve:
 - **Code bugs** — always fixable without user input (proxy resolves: "fix it")
 - **Spec gaps** where the answer is in the app spec — proxy resolves with citation
 
@@ -94,7 +94,7 @@ When dispatching the base `implement-spec` skill from this orchestrator, pass th
 
 - **Pipeline lock:** The full pipeline MUST be followed — Plan → Implement → Unit Tests → Integration Tests (run them!) → Docs → Self-Review → Update Spec → Verification → Code Review → Commit. No steps skipped. No early exit.
 - **Subagent mode:** Technical decisions are in the spec's `## Technical Approach` section. Do NOT ask Extension Mode Decision — Piotr already decided.
-- **Proxy gate:** For standalone extension-vs-core decisions, invoke `om-user-proxy` before asking the user.
+- **Proxy gate:** For standalone extension-vs-core decisions, consult `references/user-proxy.md` (the proxy reference) before asking the user.
 
 ## Autonomous loop policy
 
@@ -110,6 +110,6 @@ Implementation runs **in this conversation, chained**. If the user asks for unat
 When dispatching the base `code-review` skill from this orchestrator, pass this context:
 
 - **CI/CD verification gate (MANDATORY):** Run the same checks CI runs — typecheck, unit tests, i18n, build. Every gate MUST pass before the review can conclude.
-- **Template parity gate:** Run `yarn template:sync`. If drift is reported, invoke `om-user-proxy` before asking the user. The proxy resolves "yes, sync" if the drift is in files the current changes touch.
+- **Template parity gate:** Run `yarn template:sync`. If drift is reported, consult `references/user-proxy.md` (the proxy reference) before asking the user. The proxy resolves "yes, sync" if the drift is in files the current changes touch.
 - **Backward compatibility gate:** Check every change against `BACKWARD_COMPATIBILITY.md`. Flag any violation as Critical.
-- **Proxy gate:** Before presenting findings to user, run through `om-user-proxy`.
+- **Proxy gate:** Before presenting findings to user, run through `references/user-proxy.md`.

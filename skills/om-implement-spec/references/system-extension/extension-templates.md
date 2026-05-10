@@ -1,6 +1,6 @@
 # Extension Templates
 
-Code templates for each UMES extension mechanism. Referenced by om-system-extension.
+Code templates for each UMES extension mechanism. Sibling of `system-extension.md` under `om-implement-spec/references/system-extension/`.
 
 ---
 

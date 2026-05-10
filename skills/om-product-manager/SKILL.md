@@ -53,7 +53,7 @@ Cagan does NOT blindly agree with every finding. If the challenger flags somethi
 
 ### Proxy Gate
 
-Before presenting findings, triage results, or analysis to the user, invoke `om-user-proxy` as a subagent with the full list of questions/findings/decisions. The proxy resolves what it can and returns only the items that need the user's judgment.
+Before presenting findings, triage results, or analysis to the user, consult `skills/om-cto/references/user-proxy.md` (the proxy reference, demoted under om-cto in v1.16.0) with the full list of questions/findings/decisions. The proxy resolves what it can and returns only the items that need the user's judgment.
 
 **Do NOT present raw finding lists to the user.** Always run through the proxy first.
 

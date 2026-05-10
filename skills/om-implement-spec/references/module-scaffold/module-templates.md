@@ -1,6 +1,6 @@
 # Module Templates
 
-Code templates for each file in a new module. Used by om-module-scaffold during scaffolding.
+Code templates for each file in a new module. Sibling of `module-scaffold.md` under `om-implement-spec/references/module-scaffold/`.
 
 ---
 
