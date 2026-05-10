@@ -26,13 +26,21 @@ if [ "$is_om_project" = false ]; then
   exit 0
 fi
 
-# Detect OM vanilla (path-based skill mandates are present alongside the plugin).
-# When .ai/skills/ exists, AGENTS.md likely routes tasks to .ai/skills/<name>/SKILL.md
-# entries — those mandates duplicate plugin om-* descriptions for synced skills.
-# The hybrid routing block below tells the agent how to resolve precedence.
-is_om_vanilla=false
-if [ -d ".ai/skills" ]; then
-  is_om_vanilla=true
+# Detect legacy `.ai/skills/` directory in a consumer app — migration debt under
+# current policy (plugin om-* is the single source of truth; consumer apps should
+# not vendor a parallel `.ai/skills/` tree). We only flag NON-EMPTY trees: an
+# empty leftover directory is harmless, but a directory containing SKILL.md files
+# means the consumer is shadowing or duplicating plugin skills.
+#
+# Note: this is the inverse of pre-v1.17 behavior. The old `is_om_vanilla` block
+# treated `.ai/skills/` presence as a positive routing signal and emitted a
+# Hybrid Routing precedence note. Under the current policy that's wrong-direction
+# — consumer apps should not have the directory at all, and AGENTS.md should
+# route via `om-superpowers:om-*` skill invocations (see README "Consumer-app
+# routing" for the canonical AGENTS.md pattern).
+has_legacy_skills_dir=false
+if [ -d ".ai/skills" ] && [ -n "$(find .ai/skills -maxdepth 3 -name SKILL.md -print -quit 2>/dev/null)" ]; then
+  has_legacy_skills_dir=true
 fi
 
 # Auto-detect entry point: scan for in-progress execution plans.
@@ -120,17 +128,13 @@ When the session starts, briefly greet the user and announce that OM Superpowers
 
 ### Standalone skills (can be used anytime, outside the pipeline)
 
-These do NOT skip the pipeline — they are support tools:
-- **om-cto Advisory mode** — "does OM already do X?", architecture questions, gap analysis
-- **om-troubleshooter** — diagnose errors, 404s, migration issues
-- **om-ux (Krug)** — UI architecture review (also invoked during Mat's §3.5)
-- **om-system-extension** — extend core modules via UMES (enrichers, widgets, interceptors)
-- **om-data-model-design** — entity design, relationships, migration lifecycle
-- **om-backend-ui-design** — backend UI pages within OM component library
-- **om-eject-and-customize** — safe module ejection when UMES isn't enough
+These do NOT skip the pipeline — they are support tools. Only the names below are directly invocable via the Skill tool; specialist sub-references load via each skill's Task Router.
+- **om-cto** — Advisory ("does OM already do X?", architecture questions, gap analysis), and via Task Router: spec-writing, toolkit-review, upstream-bug-triage, user-proxy
+- **om-troubleshooter** — diagnose errors, 404s, migration issues, missing widgets; auto-routes to upstream-bug-triage when trace points into `node_modules/@open-mercato/*`
+- **om-ux** — UI architecture review (also invoked during om-product-manager §3.5)
+- **om-ds-guardian** — DS-compliant CRUD/data-table/form pages, DS health checks, backend-ui-design reference
 - **om-integration-tests** — run existing test suites
 - **om-code-review** — review a PR or diff (standalone)
-- **om-toolkit-review** — audit skill corpus for context waste and structural issues
 
 ### Rules
 
@@ -144,36 +148,32 @@ These do NOT skip the pipeline — they are support tools:
 After greeting and pipeline guidance, check for the user proxy:
 
 - If `app-spec/proxy-lessons.md` exists in the working directory → proxy is set up. Read the file for the proxy name and lesson count. Announce: "[Name] is active. [N] app lessons, [M] global lessons."
-- If no proxy-lessons.md exists → introduce the proxy concept and ask the user to name them. See the `om-user-proxy` skill for the full onboarding flow.
+- If no proxy-lessons.md exists → introduce the proxy concept and ask the user to name them. Full onboarding flow: invoke `om-superpowers:om-cto` and load `references/user-proxy.md`.
 
 The proxy is invoked by other skills before presenting questions to the user. You do not need to invoke it during session-start — it activates when skills call it.
 
 ## Available OM Skills
 
+These are the 11 top-level skills you can invoke directly via the Skill tool (`om-superpowers:om-<name>`). Specialist sub-references (module-scaffold, data-model-design, system-extension, eject, integration-builder, spec-writing, toolkit-review, user-proxy, upstream-bug-triage, backend-ui-design, pre-impl-analysis) are NOT directly invocable — they load on demand via each skill's Task Router.
+
 **Spec & Design:**
 - om-product-manager: Product owner workflow — business context, workflows, user stories, platform mapping
-- om-cto: CTO challenge — gap analysis, "does OM already do X?", atomic commit estimation
+- om-cto: CTO challenge — gap analysis, "does OM already do X?", atomic commit estimation. Task Router: spec-orchestrator, impl-orchestrator, pre-impl-analysis, toolkit-audit, upstream-bug-triage, spec-writing, user-proxy, advisory.
 - om-ux: UI architecture review — navigation, task completion, cognitive load
-- om-spec-writing: Specification creation with architectural compliance
 
 **Implementation:**
-- om-implement-spec: Multi-phase spec implementation with coordinated subagents
-- om-pre-implement-spec: Pre-implementation BC impact and risk analysis
-- om-module-scaffold: Bootstrap a new module from scratch (entities, API, pages, ACL, events)
-- om-data-model-design: Entity design, relationships, migrations, MikroORM patterns
-- om-system-extension: UMES extensions — enrichers, widgets, interceptors, guards, component replacement
-- om-eject-and-customize: Safe module ejection when UMES isn't enough
-- om-integration-builder: Provider package development (payment, shipping, data sync)
-- om-backend-ui-design: Backend UI patterns within OM framework
+- om-implement-spec: Multi-phase spec implementation with coordinated subagents. Task Router: module-scaffold, data-model-design, system-extension (and eject sub-ref), integration-builder, code-review-compliance.
+- om-ds-guardian: DS enforcement + backend admin page builder (CRUD/data-table/form pages). Task Router: backend-ui-design, page-templates, component-guide, specialized-inputs, token-mapping.
 
 **Testing & Quality:**
 - om-code-review: CI/CD verification gate + full OM checklist (20+ sections)
 - om-integration-tests: Playwright integration test creation and execution
-- om-troubleshooter: Diagnose and fix common OM issues (errors, 404s, migrations, widgets)
-- om-toolkit-review: Audit skill corpus for context waste, duplication, and structural issues
+- om-troubleshooter: Diagnose and fix common OM issues (errors, 404s, migrations, widgets). Auto-routes upstream-bug findings to om-cto/upstream-bug-triage.
 
-**Pipeline:**
-- om-user-proxy: User's decision proxy — intercepts questions, resolves from context, escalates only business judgment calls
+**Automation (PR lifecycle):**
+- om-auto-create-pr: Execute an autonomous agent task end-to-end and deliver as a GitHub PR against `develop`
+- om-auto-continue-pr: Resume an in-progress PR started by auto-create-pr
+- om-auto-review-pr: Review or re-review a GitHub PR by number in an isolated worktree
 
 ## Rules
 
@@ -182,42 +182,36 @@ The proxy is invoked by other skills before presenting questions to the user. Yo
 - Do not wait for the user to say "use superpowers" or "follow om skills" — they are always on.
 CTXEOF
 
-# Hybrid routing — only when OM vanilla is detected (path mandates + plugin both present).
-# This block is the soft-enforcement layer addressed in
-# docs/specs/2026-05-06-ralph-loop-baseline.md's follow-on discussion: it reduces
-# duplicate execution between AGENTS.md path mandates and plugin description-match,
-# but does NOT eliminate it. Measure double-fire rate after rollout to validate.
-#
-# MAINTENANCE: the custom-skill list below is hard-coded. If
-# scripts/sync-om-skills.sh changes which skills are synced vs custom,
-# update the list here too.
-if [ "$is_om_vanilla" = true ]; then
-  read -r -d '' HYBRID_ROUTING << 'HYBEOF' || true
+# Legacy `.ai/skills/` warning — only when a non-empty directory is found in
+# the consumer app. Under current policy, plugin om-* is the single source of
+# truth; a consumer app vendoring its own SKILL.md files is migration debt that
+# the agent must NOT prefer over the plugin equivalents.
+if [ "$has_legacy_skills_dir" = true ]; then
+  read -r -d '' LEGACY_SKILLS_WARNING << 'LEGEOF' || true
 
 
-## OM Vanilla Hybrid — Routing Precedence
+## Legacy `.ai/skills/` Directory Detected — DO NOT Use It as Authoritative
 
-This project has `.ai/skills/` (path-based mandates from AGENTS.md) AND the om-superpowers plugin loaded. Both surfaces overlap for synced skills. To avoid duplicate execution and version drift:
+This consumer app contains a non-empty `.ai/skills/` directory with SKILL.md files. Under current om-superpowers policy, that directory is **migration debt** — plugin `om-*` skills are the single source of truth for OM workflows.
 
-| Source | Authoritative for the matching task? |
-|---|---|
-| AGENTS.md row → `.ai/skills/<name>/SKILL.md` | **YES** — always honor first |
-| Plugin om-`<name>` Skill (synced from upstream) | NO — same content as path; cross-reference only |
-| Plugin om-cto / om-product-manager / om-ux / om-user-proxy | YES — custom in this repo, no `.ai/skills/` counterpart |
-| Plugin om-auto-create-pr / om-auto-continue-pr | YES — forked in v1.10.0 (tests-with-code gate), ahead of upstream |
+### What to do
 
-### Rules
+- **Do NOT** `Read` files under `.ai/skills/<name>/SKILL.md` and follow them as authoritative instructions. Their content may shadow, duplicate, or contradict the plugin equivalent.
+- **Do** invoke the plugin namespace via the Skill tool. The Task → Plugin Skill map is:
+  - `troubleshooter` → `om-superpowers:om-troubleshooter`
+  - `code-review` → `om-superpowers:om-code-review`
+  - `implement-spec`, `module-scaffold`, `data-model-design`, `system-extension`, `eject-and-customize`, `integration-builder` → `om-superpowers:om-implement-spec` (its Task Router loads the right reference)
+  - `backend-ui-design` → `om-superpowers:om-ds-guardian`
+  - `spec-writing`, `toolkit-review`, `user-proxy` → `om-superpowers:om-cto` (its Task Router loads the right reference)
+  - `integration-tests` → `om-superpowers:om-integration-tests`
+- **If older docs (specs, plans, runs/, PR comments) reference `.ai/skills/<name>/SKILL.md`**, treat the reference as a relic of the v1.x migration and invoke the plugin equivalent above instead of attempting to `Read` the missing/stale file.
 
-- If you read `.ai/skills/<name>/SKILL.md` due to an AGENTS.md mandate, do NOT additionally fire the matching plugin om-`<name>` Skill — they have identical content; you would double-load.
-- The 6 custom/forked skills above are PRIMARY because they have no `.ai/skills/` counterpart or are ahead of upstream. Always invoke them via the Skill tool, regardless of any AGENTS.md content.
-- Subagents dispatched during this session may not inherit this routing context. If you orchestrate subagents (Agent tool), include the relevant precedence inline in the subagent prompt when it touches an om-* skill area.
+### Heads-up to surface to the user (once per session is enough)
 
-### Caveat
+Mention to the user that `.ai/skills/` is leftover migration debt and can be removed — the plugin handles all OM skill routing now. Do not delete the directory automatically; let the user decide.
+LEGEOF
 
-This is a soft routing rule (context note), not harness enforcement. Description-match still fires the plugin Skill if the model judges the description hits the prompt. The rule reduces duplicate execution but does not eliminate it.
-HYBEOF
-
-  OM_CONTEXT="${OM_CONTEXT}${HYBRID_ROUTING}"
+  OM_CONTEXT="${OM_CONTEXT}${LEGACY_SKILLS_WARNING}"
 fi
 
 # Auto-detected entry point recommendation. Fires when project state is detectable

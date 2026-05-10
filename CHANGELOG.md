@@ -1,5 +1,72 @@
 # Changelog
 
+## 1.16.1 — hook: align session-start with 1.16.0 plugin-only policy
+
+### Fixed — three misalignments that defeated v1.16.0's "plugin om-* is single source of truth" policy
+
+v1.16.0 collapsed 19 top-level skills into 11 and moved the rest under parent `references/`. The `hooks/session-start` SessionStart injection was not updated to match — it kept pre-1.16 routing assumptions that actively pushed agents in the wrong direction. This patch fixes three issues found while diagnosing why a `patryk-standalone` debug session never invoked any om-* skill (it tried to follow stale `.ai/skills/` mandates the hook reinforced).
+
+#### 1. `is_om_vanilla` semantic inverted
+
+**Before:** hook treated presence of `.ai/skills/` in a consumer app as proof of "vanilla mode" and emitted an *OM Vanilla Hybrid — Routing Precedence* block telling agents *"AGENTS.md row → `.ai/skills/<name>/SKILL.md` — YES, always honor first; Plugin om-`<name>` Skill — NO, cross-reference only."* Under v1.16.0's plugin-only policy that's wrong-direction — a consumer with `.ai/skills/` is migration debt, not a routing signal.
+
+**After:** renamed to `has_legacy_skills_dir`. Requires non-empty `.ai/skills/` (at least one `SKILL.md` under it) before firing — empty leftover directories no longer trigger anything. The block now emits a *Legacy `.ai/skills/` Directory Detected — DO NOT Use It as Authoritative* warning that:
+
+- Tells the agent: do NOT `Read` `.ai/skills/<name>/SKILL.md` as authoritative; invoke the plugin equivalent instead.
+- Provides the Task → Plugin Skill map (e.g., `troubleshooter` → `om-troubleshooter`; `module-scaffold` / `data-model-design` / `system-extension` → `om-implement-spec`; `backend-ui-design` → `om-ds-guardian`; `spec-writing` / `toolkit-review` / `user-proxy` → `om-cto`).
+- Asks the agent to mention the migration debt to the user once per session.
+- Covers stale references encountered in *other* project files (specs, plans, `runs/`, PR comments), not just AGENTS.md.
+
+#### 2. `OM_CONTEXT` skill list pruned to match the manifest
+
+**Before:** the heredoc listed 8 names that are NOT directly invocable top-level skills — `om-spec-writing`, `om-pre-implement-spec`, `om-module-scaffold`, `om-data-model-design`, `om-system-extension`, `om-eject-and-customize`, `om-integration-builder`, `om-backend-ui-design`, `om-toolkit-review`, `om-user-proxy`. All of those moved under parent `references/` in v1.16.0 (or earlier in the case of `om-eject-and-customize` / `om-toolkit-review` / `om-pre-implement-spec`). It also OMITTED 4 real top-level skills: `om-ds-guardian` and all three `om-auto-*`. The script's own comment confessed: *"MAINTENANCE: the custom-skill list below is hard-coded. If scripts/sync-om-skills.sh changes which skills are synced vs custom, update the list here too."*
+
+**After:** both the "Standalone skills" sub-list and the categorized "Available OM Skills" section now list exactly the 11 invocable top-level skills, with Task Router notation pointing at sub-references. New "Automation (PR lifecycle)" category for the three `om-auto-*` skills.
+
+#### 3. Stray `om-user-proxy` reference in the User Proxy section
+
+**Before:** *"See the `om-user-proxy` skill for the full onboarding flow"* — pointed at a skill name that no longer exists at the top level.
+
+**After:** *"invoke `om-superpowers:om-cto` and load `references/user-proxy.md`"* — matches v1.16.0's demotion of user-proxy under om-cto.
+
+### Smoke-test results
+
+Hook tested against three scenarios — all green:
+
+| Scenario | Expected | Actual |
+|---|---|---|
+| `patryk-standalone` (`.ai/skills/` exists, empty) | Legacy warning: NOT fired | NOT fired |
+| `OM-CR/wieczor24` (`.ai/skills/` has 9 SKILL.md) | Legacy warning: fired | Fired |
+| `~` (non-OM project) | Hook outputs `{}` | Outputs `{}` |
+| Bash syntax | Valid | `bash -n` passes |
+| JSON output | Parseable, with `hookSpecificOutput.additionalContext` | 5989 chars (patryk), 7192 chars (wieczor24) |
+
+### Other artifacts produced alongside this fix (not part of the plugin)
+
+While diagnosing, two repairs landed outside the plugin and are recorded here for traceability:
+
+- `patryk-standalone/AGENTS.md` — Task → Context Map rewritten to use `invoke om-superpowers:om-<name>` notation instead of dangling `.ai/skills/<name>/SKILL.md` paths. Critical Rule #5 updated with skill-invocation guidance and an anti-pattern note covering stale refs in older docs.
+
+### Plugin-internal additions to support the policy
+
+- `skills/om-troubleshooter/SKILL.md` — promoted the buried upstream-bug routing rule to a top-of-file `## STOP — Upstream bug routing (read first)` block. Description frontmatter extended with the trigger phrase. Buried Rules-section bullet de-duplicated to a one-liner pointer.
+- `skills/om-cto/references/upstream-bug-triage.md` — Step 1 path resolution now probes `~/Documents/OM` (require `.git` AND `agents/tasks/`) as a self-bootstrapping default before asking the user. Added explicit anti-patterns at end of Step 2 (do NOT append to `ISSUE_LOG.md`; do NOT use bare `.md` at top of `agents/tasks/`; do NOT write into consumer-app `.ai/`; do NOT open PR from consumer-app session).
+- `scripts/check-consumer-agents.sh` — new file, executable, lints consumer-app `AGENTS.md` / `CLAUDE.md` files for dangling `.ai/skills/<name>/SKILL.md` refs and suggests plugin-namespace replacements per dangling ref. Smoke-tested against 7 consumer apps.
+
+### Files touched
+
+- `hooks/session-start` — three edits described above
+- `.claude-plugin/plugin.json` — version bump 1.16.0 → 1.16.1
+- `.claude-plugin/marketplace.json` — version bump 1.16.0 → 1.16.1
+- `skills/om-troubleshooter/SKILL.md` — STOP-block addition + description trigger extension + Rules-bullet de-duplication
+- `skills/om-cto/references/upstream-bug-triage.md` — Step 1 canonical-default probe + Step 2 anti-patterns block
+- `scripts/check-consumer-agents.sh` — new file
+
+### Migration notes
+
+- Consumer apps with a non-empty `.ai/skills/` directory will now see a Legacy Skills Warning block in their SessionStart context. Recommended action: migrate any AGENTS.md routing to `om-superpowers:om-*` notation (see `scripts/check-consumer-agents.sh` for a lint of dangling refs), then remove the directory.
+- Subagents dispatched in long sessions: as with prior versions, the SessionStart injection does NOT carry into subagent contexts. Orchestrators should restate routing inline when spawning subagents that touch om-* skill areas.
+
 ## 1.16.0 — architecture: development-flow vs ad-hoc skills
 
 ### Changed — 19 top-level skills → 11 (7 demoted to references, 1 removed)

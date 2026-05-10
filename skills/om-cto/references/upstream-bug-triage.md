@@ -90,13 +90,20 @@ When the verdict is `confirmed-new-bug` AND a fix in OM core is on the table, th
 
 ### Step 1 — Resolve the OM core checkout path
 
-`Read` `~/.config/om-superpowers/handoff.json`. Expected shape:
+Resolution order — first match wins:
 
-```json
-{ "om_core_path": "<absolute path to a working clone of open-mercato/open-mercato>" }
-```
+1. `Read` `~/.config/om-superpowers/handoff.json` if it exists. Expected shape:
+   ```json
+   { "om_core_path": "<absolute path to a working clone of open-mercato/open-mercato>" }
+   ```
+2. If `handoff.json` is missing, probe the conventional default `~/Documents/OM`. Confirm it is a real OM checkout by checking that BOTH exist:
+   - `<path>/.git` (it's a git repo)
+   - `<path>/agents/tasks/` (the drain protocol directory — pre-existing folders here are the authoritative signal that this is the canonical OM workspace)
 
-If the file does not exist, ask the user once for the absolute path, then `Write` the config above so future sessions don't re-ask. Do NOT proceed without a confirmed path; the drain agent on the other side needs `git`-backed isolation, so the path must be a real local checkout (with `origin = open-mercato/open-mercato` and a fork remote configured for PRs).
+   If both checks pass, use that path AND `Write` `~/.config/om-superpowers/handoff.json` with `om_core_path` set to it, so future sessions skip the probe.
+3. Only if both 1 and 2 fail, ask the user once for the absolute path, verify the same two markers, then `Write` the config.
+
+Do NOT proceed without a confirmed path; the drain agent on the other side needs `git`-backed isolation, so the path must be a real local checkout (with `origin = open-mercato/open-mercato` and a fork remote configured for PRs).
 
 ### Step 2 — Compose and write the task folder
 
@@ -156,6 +163,15 @@ See `patches.diff` in this folder if present, or compose from the goal + target 
 ````
 
 If a sketched patch already exists, also `Write` `<om_core_path>/agents/tasks/<YYYY-MM-DD>-<slug>/patches.diff` containing the verbatim diff. Otherwise omit it; the drain agent composes from the README.
+
+**Anti-patterns — do NOT do any of these:**
+
+- Do NOT append the bug to `<om_core_path>/ISSUE_LOG.md` or any similar long-running log file. The drain agent picks up tasks by directory listing under `agents/tasks/`; entries in a log file are invisible to it.
+- Do NOT skip the `<YYYY-MM-DD>-<slug>/` folder and write a bare `.md` file at the top level of `agents/tasks/`. The folder is the unit of work; `patches.diff`, screenshots, and follow-up notes live alongside the README.
+- Do NOT write the task into the *consumer app's* `.ai/` folder (e.g., `<consumer>/.ai/specs/`). Consumer-app `.ai/` is for downstream specs only; upstream tasks belong in the OM checkout so the drain agent can reach them.
+- Do NOT open the upstream PR from the consumer-app session. The whole point of this handoff is that the OM-side drain agent does the actual git work in an isolated checkout.
+
+If the existing OM workspace has a stale `ISSUE_LOG.md` from before this protocol, leave it alone — do not migrate old entries into `agents/tasks/`. Just don't add new ones to it.
 
 ### Step 3 — Stop and report
 

@@ -1,11 +1,31 @@
 ---
 name: om-troubleshooter
-description: Diagnose and fix common issues in Open Mercato standalone apps — errors, modules not loading, widgets missing, failed migrations, build errors. Triggers — "error", "not working", "broken", "fix", "debug", "404", "500", "module not found".
+description: Diagnose and fix common issues in Open Mercato standalone apps — errors, modules not loading, widgets missing, failed migrations, build errors. Triggers — "error", "not working", "broken", "fix", "debug", "404", "500", "module not found". When the trace points into `node_modules/@open-mercato/*`, STOP and route to om-cto upstream-bug-triage before proposing any fix or PR.
 ---
 
 # Troubleshooter
 
 Diagnose and fix common issues in Open Mercato standalone apps. Follow the systematic approach: identify symptoms, check common causes, verify fixes.
+
+## STOP — Upstream bug routing (read first)
+
+Before reading anything else in this skill, check whether the symptom points at OM core. If yes, route to `om-cto/references/upstream-bug-triage.md` and do NOT propose a downstream fix or "draft an upstream PR" inline.
+
+**Trigger conditions — any of these means STOP and route:**
+
+- A stack trace, error log, or breakpoint lands inside `node_modules/@open-mercato/*` (or a checked-out `@open-mercato/*` package).
+- You found yourself reading source from `node_modules/@open-mercato/*` to diagnose. If the diagnostic path went through OM core code, the bug class is "upstream until proven otherwise."
+- A core function returns wrong data, a contract doesn't match its types/JSDoc, or a widget injection / enricher / interceptor / event subscriber doesn't fire when the wiring looks correct.
+- You're about to suggest changes inside `node_modules/@open-mercato/*` — even mentally framed as "would need to".
+- You're about to offer the user a choice that includes "draft an upstream PR" or "patch upstream".
+
+**What "route" means concretely:**
+
+1. Stop the diagnosis hand-off. Do NOT enumerate fix options to the user yet.
+2. Invoke `om-cto` and load `references/upstream-bug-triage.md`. Provide the six required inputs (symptom / source location / expected vs actual / repro / proposed workaround sketch / calling agent + task).
+3. Follow the verdict om-cto returns. If the verdict is `confirmed-new-bug`, the upstream patch handoff is a `Write` to `<om_core_path>/agents/tasks/<YYYY-MM-DD>-<slug>/README.md` — NOT a PR opened from the consumer-app session, and NOT an entry appended to `<om_core_path>/ISSUE_LOG.md`. The drain agent picks up by directory listing, not by log scanning.
+
+Why this exists: in past sessions, the troubleshooter found upstream bugs (e.g., `raiseCrudError` not handling nested `error.message` in `@open-mercato/ui`), offered "draft an upstream PR" as a third option alongside local fixes, and on user redirect appended to `ISSUE_LOG.md` instead of using `agents/tasks/<DATE>-<slug>/README.md`. Both bypassed the triage protocol. This block is here so it doesn't happen again.
 
 ## Table of Contents
 
@@ -439,5 +459,5 @@ yarn dev               # 5. Restart dev server
 - **NEVER** edit files in `.mercato/generated/` or `node_modules/`
 - **NEVER** assume the issue — verify with actual error output
 - Fix the root cause, not the symptom — temporary workarounds become permanent bugs
-- **NEVER silently patch around suspected OM upstream bugs.** Before applying any workaround for `@open-mercato/*` behavior that looks broken (wrong return values, missing widget injection firing, contracts that don't match types/docs, anything that makes you think "OM core is broken"), invoke `om-cto` with `references/upstream-bug-triage.md`. om-cto verifies the bug, returns a verdict (not-a-bug / already-reported / confirmed-new-bug) plus a workaround-size classification (minor → apply+file upstream issue+file downstream removal-trigger task; major → wait-for-upstream+file blocker). You file the GitHub issues based on om-cto's drafts. Reason: silent workaround accumulation hides real bugs from the OM core team and creates unbounded downstream tech debt.
+- **NEVER silently patch around suspected OM upstream bugs.** See the "STOP — Upstream bug routing" block at the top of this skill for the full protocol. Short version: route to `om-cto/references/upstream-bug-triage.md`; the upstream patch handoff is a `Write` to `<om_core_path>/agents/tasks/<YYYY-MM-DD>-<slug>/README.md`, NOT an entry in `ISSUE_LOG.md` and NOT a PR from the consumer-app session.
 - When suggesting a fix, include the exact command or code change needed
