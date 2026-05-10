@@ -1,6 +1,6 @@
 # Entity Patterns
 
-Type selection guide, relationship patterns, and advanced data modeling patterns for Open Mercato. Referenced by om-data-model-design.
+Type selection guide, relationship patterns, and advanced data modeling patterns for Open Mercato. Sibling of `data-model-design.md` under `om-implement-spec/references/data-model-design/`.
 
 ## 3. Field Types
 

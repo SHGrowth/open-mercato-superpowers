@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.16.0 — DRAFT (architecture: development-flow vs ad-hoc skills)
+## 1.16.0 — architecture: development-flow vs ad-hoc skills
 
 ### Changed — 19 top-level skills → 11 (7 demoted to references, 1 removed)
 
@@ -46,21 +46,25 @@ The pre-existing `om-eject-and-customize` demotion (v1.8.0) still flows through 
 | 1.15.1 (frontmatter trim) | 19 | 4,889 | -43% |
 | **1.16.0 (this draft)** | **11** | **3,031** | **-65%** |
 
-#### Stale-reference cleanup deferred to 1.16.1
+#### Stale-reference cleanup (complete)
 
-This draft fixes all **concrete file paths** to demoted skill folders (verified: zero `skills/om-<demoted>/...` paths remain). Descriptive name mentions in body content (e.g., "invoke om-user-proxy", "om-module-scaffold scaffolds new modules") are intentionally left for v1.16.1 — they don't break execution but should be cleaned up for clarity.
+All **concrete file paths** to demoted skill folders updated (verified: zero `skills/om-<demoted>/...` paths remain). All **descriptive name mentions** in body content also updated — references to "invoke `om-user-proxy`", "`om-module-scaffold` scaffolds new modules", etc. now point at the new reference paths or describe the parent skill that loads them. README.md and UPSTREAM.md fully reflect the new architecture: 11 top-level skills, 10 demoted references (7 added in v1.16.0 + 3 from v1.8.0 era), Custom/Synced/Frozen-snapshot taxonomy in the Custom-vs-Synced table.
 
 ### Files touched
 
 - 7 × demoted skill directories — `git mv` to parent's `references/<name>/` (or single-file for om-user-proxy); frontmatter stripped from main SKILL.md
 - `skills/om-orchestrate/` — deleted (11 files)
 - `skills/om-cto/SKILL.md` — Task Router gains spec-writing + user-proxy rows; User Proxy Integration section updated
-- `skills/om-cto/references/advisory.md` — concrete paths updated
+- `skills/om-cto/references/{advisory,impl-orchestrator,spec-orchestrator,toolkit-audit}.md` — concrete paths updated; "invoke `om-user-proxy`" rephrased to "consult `references/user-proxy.md`"; toolkit-audit's trigger matrix and orchestrator-chain blocks reflect v1.16.0 routing
 - `skills/om-implement-spec/SKILL.md` — description widened; Task Router section added; orchestration-detect block in Step 8 simplified to plain integration-test command
-- `skills/om-ds-guardian/SKILL.md` — description widened to absorb backend page build triggers; Task Router section added; collaboration table pruned of demoted skill rows
+- `skills/om-implement-spec/references/{module-scaffold,data-model-design,system-extension,integration-builder}/<sub-ref>.md` — header lines updated from "Referenced by om-X" to "Sibling of <name>.md under <new path>"
+- `skills/om-ds-guardian/SKILL.md` — description widened to absorb backend page build triggers; Task Router section added; collaboration table pruned of demoted skill rows; "page generation is owned by `om-module-scaffold`" callout rewritten
+- `skills/om-product-manager/SKILL.md` — Proxy Gate section now points to `skills/om-cto/references/user-proxy.md`
 - `skills/om-ux/SKILL.md` + `skills/om-ux/references/krug-prompt.md` — backend-ui-design paths updated
 - `scripts/sync-om-skills.sh` — `CORE_SKILL_PAIRS` and `APP_SKILL_PAIRS` lose the 6 demoted upstream skills; `DEMOTED_SKILL_PAIRS` updates the eject.md target path
 - `.claude-plugin/plugin.json` + `marketplace.json` — version bump to 1.16.0; description updated from "19 user-facing skills" to "11 user-facing skills"
+- `README.md` — opening blurb (19→11), inline examples, Spec & Design / Implementation / Quality / Automation / Demoted-references tables, ASCII pipeline diagram, Custom-vs-Synced-vs-Frozen taxonomy, v1.12.0 om-orchestrate callout rewritten as v1.16.0 removal callout, v1.12.1 upstream-bug-triage rule scope updated, v1.13.0 mirrors-docs callout updated to point at new reference paths
+- `UPSTREAM.md` — main registry pruned to 11 top-level rows; "Demoted skills" section expanded to 10 rows with two source modes (Auto-synced vs Frozen snapshot v1.16.0)
 
 ### Migration notes
 

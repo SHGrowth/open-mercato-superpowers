@@ -29,7 +29,7 @@ Then read the Design System Rules section in `AGENTS.md` for the current rules.
 
 DS Guardian has five capabilities. Each can be invoked independently or chained in workflows.
 
-> **DS Guardian does not write code.** It shapes inputs (via reference docs that primary scaffolders consume) and polices outputs (via REVIEW at PR time). Page generation is owned by `om-module-scaffold` and `om-implement-spec` — those skills MUST consult `references/page-templates.md` and `references/component-guide.md` so their output is DS-compliant by default.
+> **DS Guardian does not write code outside the backend-ui-design reference path.** It shapes inputs (via reference docs that primary scaffolders consume) and polices outputs (via REVIEW at PR time). Page generation across the full pipeline is owned by `om-implement-spec` (and its `references/module-scaffold/` reference) — those MUST consult `references/page-templates.md` and `references/component-guide.md` so their output is DS-compliant by default. The new `references/backend-ui-design/` (demoted from a top-level skill in v1.16.0) is loaded by this skill itself when the user explicitly asks to **build** an admin/CRUD page.
 
 ---
 
@@ -305,7 +305,7 @@ Chain capabilities based on developer intent:
 | Developer says | Workflow |
 |---------------|----------|
 | "migrate module X to DS" | ANALYZE → PLAN → confirm → MIGRATE → REVIEW → REPORT |
-| "build a new page for X" | Defer to `om-module-scaffold` / `om-implement-spec` (they consume `references/page-templates.md`) → REVIEW at PR time |
+| "build a new page for X" | Defer to `om-implement-spec` (which loads its `references/module-scaffold/` or `references/system-extension/` and consults DS Guardian's `references/page-templates.md`) → REVIEW at PR time |
 | "check my code" / "DS review" | REVIEW → suggest fixes |
 | "how are we doing" / "DS health" | REPORT → commentary → suggest next module |
 | "analyze X for violations" | ANALYZE → summary |
@@ -381,7 +381,7 @@ Synced from `open-mercato/open-mercato` by `scripts/sync/ds.mjs` (manual trigger
 
 - `references/token-mapping.md` — Find→replace tables for color and typography migrations. Layers concrete migration recipes on top of Tier 1 token rules.
 - `references/component-guide.md` — Decision tables and "when to use which" guidance with API quick references. Layers DS Guardian's choosing logic on top of Tier 1 component contracts.
-- `references/page-templates.md` — DS-compliant List/Create/Detail page templates. **Required reading for `om-module-scaffold` and `om-implement-spec` when emitting backend pages.**
+- `references/page-templates.md` — DS-compliant List/Create/Detail page templates. **Required reading for `om-implement-spec` (and its on-demand `references/module-scaffold/` reference) when emitting backend pages.**
 - `scripts/ds-health-check.sh` — Repo-wide DS health snapshot with delta tracking. Used by Capability 5 (REPORT) and at session start. Saves dated reports to `.ai/reports/`.
 - `scripts/ds-diff-check.sh` — Per-file deterministic linter for a list of changed files. Output format: `<file>:<line>:<rule-id>:<match>`. Used by `om-auto-review-pr` step 6a as the grep-first phase before LLM REVIEW. Pattern set is kept in sync with `ds-health-check.sh`.
 - `scripts/ds-migrate-colors.sh` — Color migration codemod

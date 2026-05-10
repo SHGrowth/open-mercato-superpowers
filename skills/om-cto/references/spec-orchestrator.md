@@ -56,7 +56,7 @@ Produce an execution plan document:
 
 | # | Spec file | Feature | Depends on | Technical approach | Complexity |
 |---|-----------|---------|-----------|-------------------|------------|
-| 1 | SPEC-2026-04-01-user-roles.md | User roles & permissions | — | New module (om-module-scaffold) | Medium |
+| 1 | SPEC-2026-04-01-user-roles.md | User roles & permissions | — | New module (loads module-scaffold reference) | Medium |
 | 2 | SPEC-2026-04-01-partnerships.md | Partnership management | #1 | UMES extension of customers | High |
 
 ## Key technical decisions
@@ -69,7 +69,7 @@ Produce an execution plan document:
 
 ## Step 4.5 — Proxy gate
 
-Before presenting specs to the user, collect any detail questions that arose during spec writing (ambiguities, trade-off choices, gap decisions). Invoke `om-user-proxy` with these questions. Incorporate resolved answers into the specs. Only present the escalation list alongside the specs for user review.
+Before presenting specs to the user, collect any detail questions that arose during spec writing (ambiguities, trade-off choices, gap decisions). Consult `references/user-proxy.md` (the proxy reference) with these questions. Incorporate resolved answers into the specs. Only present the escalation list alongside the specs for user review.
 
 **The approval gate itself ("approve these specs?") goes directly to the user — the proxy does NOT make go/no-go decisions.**
 
@@ -106,7 +106,7 @@ When dispatching the base `spec-writing` skill from this orchestrator, pass this
 
 When loading `references/pre-impl-analysis.md` from this orchestrator, apply this context on top of its workflow:
 
-- **Proxy gate:** Before presenting the analysis report to the user, invoke `om-user-proxy` with findings. Only escalate what the proxy can't resolve.
+- **Proxy gate:** Before presenting the analysis report to the user, consult `references/user-proxy.md` (the proxy reference) with findings. Only escalate what the proxy can't resolve.
 - **Focus:** Backward compatibility audit against the 13 contract surface categories in `BACKWARD_COMPATIBILITY.md`
 - **Include:** AGENTS.md compliance check for affected modules
 - **Output:** Structured remediation plan with severity levels
