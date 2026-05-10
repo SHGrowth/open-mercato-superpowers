@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.15.0
+
+### Added — upstream patch handoff (producer convention + consumer drain protocol)
+
+Closes the producer-consumer loop on upstream OM core fixes — as a documented convention the model executes with native tools (`Read` / `Write` / one `Bash` find), not a CLI wrapper. A consumer-app session (PRM, patryk-standalone, any other downstream app) reads the OM core checkout path from `~/.config/om-superpowers/handoff.json` (asking the user once and persisting if missing), then `Write`s a self-contained task folder at `<om-core-checkout>/agents/tasks/YYYY-MM-DD-<slug>/README.md` with the README template inline in the skill body. A separate session running with `cwd` inside the OM checkout drains that queue per the new `skills/om-cto/references/upstream-task-drain.md` — landing the patch upstream without ever cross-contaminating the two repos.
+
+**Driven by** `docs/specs/analysis/ANALYSIS-2026-05-10-upstream-handoff-baseline.md` (empirical baseline) + `ANALYSIS-2026-05-10-upstream-handoff-baseline-v2.md` (Musk-Step-1 review of the wrapper plan). The baseline mined 16 cross-project handoff writes since 2026-04-01 across three real tasks dropped on 2026-05-10. Without any rule, the binding rate was **67%** (2 of 3 README-only handoffs as intended; 1 task had a `patches.diff` written from the consumer side — the failure mode this release closes).
+
+#### Why a convention, not wrappers
+
+A `bin/om-handoff` + `bin/om-task-list` wrapper pair was drafted earlier in the day and **deleted before commit** after Musk-Step-1 review. Five jobs the wrapper would do — resolve the OM-core path, validate slug regex, `mkdir` the folder, write a 9-section skeleton, return the path — all reduce to native primitives the model already has. The skeleton-then-Edit pattern actually inverted the friction goal: two round trips where a single `Write` with substance composed inline is one. Two BLOCKERs that only existed because the wrapper existed (heredoc interpolation leaking the producer-local path into the README the drain agent reads on a different machine; wrapper not on `$PATH` from a consumer-app session) disappeared with the wrapper. The convention's binding logic is identical to the wrapper's — both are prose-channel binding (per the agents-master `feedback_text_channel_does_not_bind` finding, N=17) — but the convention has lower friction at every step and a more legible failure mode: a missed handoff shows up as the absence of writes under `agents/tasks/`, not a confused half-attempt to invoke a wrapper that wasn't on PATH.
+
+The PreToolUse cwd-jail / lockdown-mode hook (the alternative structural-policing approach) was rejected separately. Adversarial review found 2 BLOCKER issues (matcher missed `Bash` writes via `cat > file` and `sed -i`; proposed `{"decision":"block"}` is `Stop` semantics, not `PreToolUse`) and 4 SERIOUS issues. Friction reduction beats structural policing when the population is willing — and the data shows consumer-app sessions are willing.
+
+#### What ships
+
+- **`skills/om-cto/references/upstream-bug-triage.md`** — the "Upstream patch handoff" section is rewritten to spec the convention inline, three steps the model performs with native tools: (1) `Read` `~/.config/om-superpowers/handoff.json`'s `om_core_path` key, ask the user once and `Write` the config if missing; (2) compose substance and `Write` `<om-core-checkout>/agents/tasks/<YYYY-MM-DD>-<slug>/README.md` with the template (inline in the skill body, `<om-core-checkout>` placeholder kept literal in example commands so the drain agent on a different machine doesn't see a stale absolute path); (3) stop the upstream-patch portion of the task, report the folder path back to the user. Slug regex (`^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$`, no double hyphens) stated in the skill body. Action-table rows for both `confirmed-new-bug` recommendations updated. New `upstream_patch_task_path` YAML field in the structured verdict output. Boundary section gains a fourth bullet: "does not author the upstream core patch from the consumer-app session." Why-this-exists gains a fourth failure mode: "Cross-repo patch contamination." Net: ~70 lines added to the skill body, prior wrapper-pointing prose removed.
+- **`skills/om-cto/references/upstream-task-drain.md` (new)** — consumer-side protocol for the OM-side agent. Sibling reference under `om-cto`, NOT a new top-level skill (per skill-surface-budget rule: bug-triage and task-drain are two phases of the same architectural concern). Specifies claim protocol (`git mv` to `in-progress/` is the lock — race losers fail loudly), work protocol (re-verify anchors against current upstream sha → branch off `origin/main` → patch → tests → PR to your fork), done protocol (`git mv` to `done/` + sibling `resolution.md` linking the merged PR back to the originating downstream task with a removal trigger for any consumer-side workaround), and rejection/pushback path.
+
+#### Verification target (Karpathy bar)
+
+Binding-rate KPI: `handoff_correct / (handoff_correct + inline_authored)`. Today's baseline 67%. Target after release: ≥90%. Re-run the mining query monthly. Plan B (`SessionEnd` git-diff auditor scanning for `patches.diff` writes inside `/OM/agents/tasks/` from non-OM `cwd`) held for 1.15.1 if Plan A measurement says the convention alone isn't enough.
+
+Reproducible mining query lives in the v1 analysis doc.
+
+### Files touched
+
+- `skills/om-cto/references/upstream-bug-triage.md` — rewrote "Upstream patch handoff" section to spec the convention inline (Read config / Write template / stop). Added `upstream_patch_task_path` YAML field, updated action table for both `confirmed-new-bug` rows, updated boundary + reporting-back, added fourth failure mode in why-this-exists.
+- `skills/om-cto/references/upstream-task-drain.md` (new) — consumer-side drain protocol reference.
+- `docs/specs/analysis/ANALYSIS-2026-05-10-upstream-handoff-baseline.md` (new) — empirical baseline + mining query + rejected `PreToolUse` lockdown proposal. Top-line note added pointing at v2 for the plan section.
+- `docs/specs/analysis/ANALYSIS-2026-05-10-upstream-handoff-baseline-v2.md` (new) — Musk-Step-1 review of the wrapper plan; specifies the convention shape that actually shipped.
+- `CHANGELOG.md` — this entry.
+- `.claude-plugin/plugin.json` + `.claude-plugin/marketplace.json` — version 1.15.0.
+- `README.md` — v1.15.0 callout.
+
+#### Cross-refs
+
+- v1.12.1 (`upstream-bug-triage` discipline — the producer-side triage rule this release operationalizes for the patch-authoring path)
+- agents-master `feedback_text_channel_does_not_bind` (the prose-channel binding limitation that applies equally to convention and wrapper, and informed the choice not to over-engineer)
+
 ## 1.14.0
 
 ### Added — `bin/claude-validated` output validator wrapper

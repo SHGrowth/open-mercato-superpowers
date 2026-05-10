@@ -84,6 +84,85 @@ Edge cases:
 - A 60-LOC change that's a single guard at one call site, with a clear `// remove when @open-mercato/<pkg>#<issue> ships` marker, is **minor** (containable, removable).
 - When in doubt → recommend major (waiting). Workaround tech debt outlasts the original deadline.
 
+## Upstream patch handoff (producer-side convention)
+
+When the verdict is `confirmed-new-bug` AND a fix in OM core is on the table, the calling agent does NOT author the upstream patch in the current consumer-app session. It drops a self-contained task folder for the OM-side drain agent (see `upstream-task-drain.md`) to pick up. The convention is three steps the model performs with native tools — no CLI wrapper.
+
+### Step 1 — Resolve the OM core checkout path
+
+`Read` `~/.config/om-superpowers/handoff.json`. Expected shape:
+
+```json
+{ "om_core_path": "<absolute path to a working clone of open-mercato/open-mercato>" }
+```
+
+If the file does not exist, ask the user once for the absolute path, then `Write` the config above so future sessions don't re-ask. Do NOT proceed without a confirmed path; the drain agent on the other side needs `git`-backed isolation, so the path must be a real local checkout (with `origin = open-mercato/open-mercato` and a fork remote configured for PRs).
+
+### Step 2 — Compose and write the task folder
+
+Pick a slug matching `^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$`, no double hyphens. Use today's UTC date.
+
+`Write` exactly one file: `<om_core_path>/agents/tasks/<YYYY-MM-DD>-<slug>/README.md`, composing the full substance (goal, target, hunks, tests, risks, cross-checks, provenance) inline at write time — not a skeleton-then-Edit cycle. Template below; copy verbatim and fill the angle-bracket placeholders. Keep `<om-core-checkout>` literal in the README's example commands so the drain agent (reading on a different machine) does not see a stale absolute path.
+
+````markdown
+# Task — <one-line title>
+
+**Status:** scoped, not yet ported to OM repo, no PR opened.
+**Type:** <PR — small clean fix | Issue + likely PR | Issue first, PR pending maintainer signal>
+**Target branch:** off `origin/main`.
+
+## Goal
+
+<what the patch achieves, in plain English; before/after if behavioral>
+
+## Target file
+
+`<package>/<path>` at upstream sha `<sha>`.
+Re-verify line anchors before applying — upstream may have moved.
+
+## Patches to apply
+
+See `patches.diff` in this folder if present, or compose from the goal + target above. Summary of hunks:
+
+- Hunk 1 — <one-line what + where>
+- Hunk 2 — <one-line what + where>
+
+## Tests needed
+
+<list of unit / integration tests the executing agent must add or extend>
+
+## Risks / edge cases
+
+<bounded loops, fallback paths, behavior in unrelated branches>
+
+## Cross-checks before submitting
+
+`gh search` commands to confirm no duplicate issue or PR exists upstream.
+
+## Execution checklist
+
+- [ ] `cd <om-core-checkout>`
+- [ ] `git fetch origin && git checkout -b fix/<slug> origin/main`
+- [ ] Apply hunks from `patches.diff` (or compose from this README)
+- [ ] Write the tests listed above
+- [ ] Run the existing test suite — confirm no regression
+- [ ] `git diff origin/main...HEAD` review — confirm only the scoped hunks
+- [ ] Commit, push to your fork remote, open PR against `origin/main`
+- [ ] Paste any before/after evidence (logs, screenshots) in the PR body
+
+## Provenance
+
+<which consumer-app session surfaced this and the concrete repro that justifies the patch>
+````
+
+If a sketched patch already exists, also `Write` `<om_core_path>/agents/tasks/<YYYY-MM-DD>-<slug>/patches.diff` containing the verbatim diff. Otherwise omit it; the drain agent composes from the README.
+
+### Step 3 — Stop and report
+
+After the task folder exists, the calling agent stops the upstream-patch portion of its task and reports the folder path back to the user. The downstream workaround (if any, per the size rule above) is still applied in the consumer-app session — only the core patch is handed off.
+
+To inspect the queue, the model can `Bash` `find <om_core_path>/agents/tasks/ -maxdepth 2 -type d -name '20*'` (incoming = top-level dirs other than `in-progress/` and `done/`). The drain protocol in `upstream-task-drain.md` defines what `in-progress/` and `done/` look like.
+
 ## Outputs back to calling agent
 
 om-cto returns a structured verdict:
@@ -95,6 +174,7 @@ upstream_status: <open | unreleased-fix-on-main | not-applicable>
 workaround_size: minor | major | not-applicable
 recommendation: apply-workaround | wait-for-upstream | use-correct-api
 correct_usage: <if not-a-bug, the right way to call the API>
+upstream_patch_task_path: <absolute path to the task folder written under <om_core_path>/agents/tasks/, or null if no upstream patch is implied>
 upstream_issue_draft: |
   <issue body — see template below — only if confirmed-new-bug>
 downstream_task_draft: |
@@ -176,6 +256,7 @@ When `@open-mercato/<pkg>` is bumped to a version including the fix, search for 
 - Does **not** file the upstream issue. Calling agent files via `gh`.
 - Does **not** file the downstream task. Calling agent files via `gh`.
 - Does **not** implement the workaround. Calling agent applies the patch if the recommendation is `apply-workaround`.
+- Does **not** author the upstream core patch from the consumer-app session. Calling agent composes and `Write`s the task folder per the "Upstream patch handoff" convention above; the OM-side drain agent (see `upstream-task-drain.md`) executes it.
 - Does **not** contact the OM core team out-of-band. The upstream issue is the channel; do not Slack / email / DM.
 
 ## What the calling agent does after the verdict
@@ -187,8 +268,8 @@ When `@open-mercato/<pkg>` is bumped to a version including the fix, search for 
 | already-reported, fix-unreleased | wait-for-upstream (major) | File downstream blocker task with upstream link. Stop current task. Report to user. |
 | already-reported, open | apply-workaround (minor) | Same as above, plus add a +1 comment on the upstream issue if useful. |
 | already-reported, open | wait-for-upstream (major) | Same as above. Comment on upstream issue with downstream impact context. |
-| confirmed-new-bug | apply-workaround (minor) | File upstream issue (using draft). File downstream task referencing the new upstream issue. Apply workaround. Continue task. |
-| confirmed-new-bug | wait-for-upstream (major) | File upstream issue (using draft). File downstream blocker task. Stop current task. Report to user. |
+| confirmed-new-bug | apply-workaround (minor) | File upstream issue (using draft). Compose and `Write` the task folder per the "Upstream patch handoff" convention above. File downstream task referencing the upstream issue + the task folder path. Apply workaround. Continue task. |
+| confirmed-new-bug | wait-for-upstream (major) | File upstream issue (using draft). Compose and `Write` the task folder per the "Upstream patch handoff" convention above. File downstream blocker task. Stop current task. Report to user, including the task folder path. |
 
 ## Reporting back to user
 
@@ -197,6 +278,7 @@ When the recommendation is `wait-for-upstream`, the calling agent's report to th
 - The verdict and why the workaround was classified major.
 - Upstream issue URL.
 - Downstream task URL.
+- Path to the task folder written under `<om-core-checkout>/agents/tasks/` so the next session (the OM-side drain agent) can pick it up.
 - What the user can do to unblock (e.g., decide to absorb the major workaround anyway, escalate upstream, or re-scope the current task).
 
 Do not silently apply a major workaround "for now." The whole point of this triage is to surface the decision to the human.
@@ -208,5 +290,6 @@ Three failure modes this prevents:
 1. **Silent core bugs.** Downstream patches around a real bug; OM core team never learns; the same bug bites every other downstream user.
 2. **Tech debt accumulation.** Workarounds without removal triggers outlast their cause by years and make every later refactor harder.
 3. **Wrong-call workarounds.** Sometimes the "bug" is a misuse of the API. Verifying first prevents shipping a workaround for behavior that was correct.
+4. **Cross-repo patch contamination.** Upstream patches written from a consumer-app session land in the wrong working directory, mix with downstream diffs, or get committed to the wrong remote. The producer convention (this reference) and the consumer drain protocol (`upstream-task-drain.md`) keep the two repos cleanly separated.
 
 The verification hop costs a few minutes per occurrence. The alternative — the silent-workaround default — costs unbounded engineering time downstream.
