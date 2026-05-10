@@ -1,6 +1,6 @@
 ---
 name: om-ds-guardian
-description: Open Mercato design-system enforcement — flag hardcoded colors/typography, raw HTML form controls, missing empty/loading states; build DS-compliant backend pages; run DS health checks. Triggers — "DS review", "migrate colors", "DS health", `text-red-*`, raw `<input>`/`<select>`.
+description: OM design-system enforcement + backend admin page builder — flag hardcoded colors/typography/raw HTML controls, build DS-compliant CRUD/data-table/form pages, run DS health checks. Triggers — "DS review", "build admin page", "data table", "CRUD interface", "migrate colors", "DS health".
 ---
 
 # DS Guardian — Design System Enforcement Agent
@@ -319,16 +319,22 @@ For the full migration workflow, ALWAYS:
 
 ---
 
+## Task Router (backend page build)
+
+When the user asks to **build** an admin/backoffice page, data table, CRUD form, or detail page (rather than review one), load `references/backend-ui-design/backend-ui-design.md` for the @open-mercato/ui implementation patterns. DS Guardian REVIEW still applies to whatever is emitted.
+
+| Trigger | Load |
+|---|---|
+| "build admin page", "build backend page", "data table", "CRUD interface", "detail page" | `references/backend-ui-design/backend-ui-design.md` |
+| Component selection ("which DS primitive?", "Input vs raw input") | `references/backend-ui-design/ui-components.md` |
+
 ## Collaboration with Other om-superpowers Skills
 
 | Skill | Relationship |
 |-------|-------------|
-| **om-backend-ui-design** | Handles backend page implementation patterns (CrudForm, DataTable, layout). DS Guardian validates that the output uses tokens correctly and doesn't introduce raw HTML controls. Use both together — `om-backend-ui-design` for *how to build*, this skill for *does it pass DS rules*. |
 | **om-code-review** | General OM code review (architecture, security, conventions). DS Guardian adds DS-specific checks (colors, typography, form controls) on top — invoke after `om-code-review` for any UI-touching PR. |
-| **om-module-scaffold** | Scaffolds new modules including their first pages. Consumes `references/page-templates.md` and `component-guide.md` so its output is DS-compliant by default. DS Guardian REVIEW catches anything that drifts at PR time. |
-| **om-implement-spec** | Implements specs phase-by-phase. Consumes the same DS references during UI emission so phase output passes DS REVIEW on the first pass. |
+| **om-implement-spec** | Implements specs phase-by-phase, including module scaffolding and system-extension flows (which were merged in v1.16). Consumes DS references during UI emission so phase output passes DS REVIEW on the first pass. |
 | **om-troubleshooter** | Handles "it doesn't work" UI bugs. DS Guardian handles "it works but violates the DS." |
-| **om-system-extension** | Injects components/columns into existing modules. DS Guardian reviews the injected components for DS compliance before they ship. |
 
 ---
 

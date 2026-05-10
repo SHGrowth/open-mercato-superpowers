@@ -1,5 +1,72 @@
 # Changelog
 
+## 1.16.0 — DRAFT (architecture: development-flow vs ad-hoc skills)
+
+### Changed — 19 top-level skills → 11 (7 demoted to references, 1 removed)
+
+A skill-corpus audit against actual usage data (last 30 days, all projects) showed many "skills" were really specialty references that fired during specific work episodes — not user-typed entry points. They cost ~3,500 chars of always-on description budget for cases the user wasn't directly invoking. v1.16 separates **development-flow skills** (user-facing entry points + always-on pipeline parts) from **ad-hoc references** (loaded by parent skill when a specific kind of work begins).
+
+Pattern is identical to v1.8.0's three-skill demotion (om-pre-implement-spec, om-eject-and-customize, om-toolkit-review): body content moves under parent's `references/` with frontmatter stripped; parent SKILL.md absorbs trigger phrases and adds Task Router rows.
+
+#### Demotions (7 skills → references)
+
+| Demoted skill | New location | Parent absorbs triggers |
+|---|---|---|
+| om-user-proxy | `skills/om-cto/references/user-proxy.md` | (proxy invocation pattern, no user trigger) |
+| om-spec-writing | `skills/om-cto/references/spec-writing/spec-writing.md` + 3 sub-refs | already covers "write specs" |
+| om-module-scaffold | `skills/om-implement-spec/references/module-scaffold/` + 3 sub-refs | "create module", "new module", "scaffold module" |
+| om-data-model-design | `skills/om-implement-spec/references/data-model-design/` + 2 sub-refs | "design entity", "data model", "schema", "migration" |
+| om-system-extension | `skills/om-implement-spec/references/system-extension/` + 3 sub-refs (incl. eject.md) | "extend", "add column to", "intercept", "override component" |
+| om-integration-builder | `skills/om-implement-spec/references/integration-builder/` + 2 sub-refs | "build integration", "add provider", "new connector" |
+| om-backend-ui-design | `skills/om-ds-guardian/references/backend-ui-design/` + 1 sub-ref | "build admin page", "data table", "CRUD interface" |
+
+#### Removal (1 skill)
+
+- **om-orchestrate** deleted entirely. Per `feedback_loop_self_pace_anti_pattern` and 0 invocations in 30 days, the autonomous-fleet workflow was superseded by `/loop 5m /auto-continue-pr <PR#>` (harness cron mode). Coding-agent / e2e-agent / merge-agent prompts and dispatcher script are gone with it.
+
+#### Top-level skill list (11 remaining)
+
+User-facing entry points only:
+- **Advisory & PM** — om-cto, om-product-manager, om-ux
+- **Implementation** — om-implement-spec, om-code-review, om-integration-tests
+- **PR mechanics** — om-auto-create-pr, om-auto-continue-pr, om-auto-review-pr
+- **Quality enforcement** — om-ds-guardian, om-troubleshooter
+
+#### Frozen-snapshot decision (not auto-synced from upstream)
+
+6 of the 7 demoted skills were vendored from upstream `open-mercato/open-mercato`. v1.16 takes them out of `CORE_SKILL_PAIRS` / `APP_SKILL_PAIRS` rather than extending `sync_demoted_skill()` to handle nested `references/` folders. They become **frozen snapshots** as of v1.16.0; manual cherry-pick from upstream is required for future changes. Trade-off: cleaner sync script, marginally more upkeep for the four upstream-tracked references. Pattern documented in the script comments.
+
+The pre-existing `om-eject-and-customize` demotion (v1.8.0) still flows through `DEMOTED_SKILL_PAIRS` — its target path was updated from `skills/om-system-extension/references/eject.md` to `skills/om-implement-spec/references/system-extension/eject.md` to match the v1.16 reshuffle.
+
+#### Budget impact
+
+| Stage | Top-level skills | Description chars | Δ vs baseline |
+|---|---|---|---|
+| Baseline (1.15.0) | 19 | 8,577 | — |
+| 1.15.1 (frontmatter trim) | 19 | 4,889 | -43% |
+| **1.16.0 (this draft)** | **11** | **3,031** | **-65%** |
+
+#### Stale-reference cleanup deferred to 1.16.1
+
+This draft fixes all **concrete file paths** to demoted skill folders (verified: zero `skills/om-<demoted>/...` paths remain). Descriptive name mentions in body content (e.g., "invoke om-user-proxy", "om-module-scaffold scaffolds new modules") are intentionally left for v1.16.1 — they don't break execution but should be cleaned up for clarity.
+
+### Files touched
+
+- 7 × demoted skill directories — `git mv` to parent's `references/<name>/` (or single-file for om-user-proxy); frontmatter stripped from main SKILL.md
+- `skills/om-orchestrate/` — deleted (11 files)
+- `skills/om-cto/SKILL.md` — Task Router gains spec-writing + user-proxy rows; User Proxy Integration section updated
+- `skills/om-cto/references/advisory.md` — concrete paths updated
+- `skills/om-implement-spec/SKILL.md` — description widened; Task Router section added; orchestration-detect block in Step 8 simplified to plain integration-test command
+- `skills/om-ds-guardian/SKILL.md` — description widened to absorb backend page build triggers; Task Router section added; collaboration table pruned of demoted skill rows
+- `skills/om-ux/SKILL.md` + `skills/om-ux/references/krug-prompt.md` — backend-ui-design paths updated
+- `scripts/sync-om-skills.sh` — `CORE_SKILL_PAIRS` and `APP_SKILL_PAIRS` lose the 6 demoted upstream skills; `DEMOTED_SKILL_PAIRS` updates the eject.md target path
+- `.claude-plugin/plugin.json` + `marketplace.json` — version bump to 1.16.0; description updated from "19 user-facing skills" to "11 user-facing skills"
+
+### Migration notes
+
+- Direct invocation of demoted skills via the `Skill` tool will no longer find them by their old names. Switch to invoking the parent (om-cto, om-implement-spec, om-ds-guardian) and let it route via Task Router.
+- For any downstream session script that read `skills/om-system-extension/SKILL.md` directly: the new path is `skills/om-implement-spec/references/system-extension/system-extension.md`.
+
 ## 1.15.1
 
 ### Fixed — skill description budget (frontmatter trim across all 19 skills)

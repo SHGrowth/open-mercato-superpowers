@@ -1,7 +1,3 @@
----
-name: om-module-scaffold
-description: Scaffold a new Open Mercato module with all required files and conventions — API routes, backend pages, DI, ACL, events, search. Triggers — "create module", "new module", "scaffold module", "add module", "bootstrap module".
----
 
 # Module Scaffold
 

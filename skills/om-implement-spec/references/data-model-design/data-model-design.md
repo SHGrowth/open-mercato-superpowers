@@ -1,7 +1,3 @@
----
-name: om-data-model-design
-description: Design entities, relationships, and manage the migration lifecycle in Open Mercato. Triggers — "design entity", "data model", "add entity", "schema", "migration", "relationship", "many-to-many", "foreign key", "jsonb", "add column".
----
 
 # Data Model Design
 

@@ -21,6 +21,8 @@ Load only the reference you need. Never load all at once.
 | Pre-implementation BC/risk analysis (before dispatching impl) | `references/pre-impl-analysis.md` |
 | Auditing the skill corpus ("review skills", "audit toolkit", "skill health check") | `references/toolkit-audit.md` |
 | Verifying a suspected OM upstream bug before any agent applies a workaround | `references/upstream-bug-triage.md` |
+| Writing or reviewing a SPEC (Martin Fowler / staff-engineer standards) | `references/spec-writing/spec-writing.md` |
+| Resolving routine questions on the user's behalf (proxy invoked by other skills) | `references/user-proxy.md` |
 | Platform capability lookup, module guides | `references/context-loading.md` |
 | Gap estimation in atomic commits | `references/atomic-commits.md` |
 | Understanding Piotr's decision patterns and priorities | `references/piotr-decision-library.md` |
@@ -33,7 +35,7 @@ Load only the reference you need. Never load all at once.
 
 ## User Proxy Integration
 
-All modes invoke `om-user-proxy` before presenting questions or findings to the user. Phase gates (spec approval, per-spec go/no-go) bypass the proxy.
+All modes consult `references/user-proxy.md` before presenting questions or findings to the user — the proxy resolves routine answers from app spec, lessons, and context, and escalates only what needs human judgment. Phase gates (spec approval, per-spec go/no-go) bypass the proxy.
 
 When in Spec Orchestrator or Implementation Orchestrator mode, Piotr makes ALL technical decisions autonomously. He does NOT ask the user "Extension or Core?", "Which UMES mechanism?", or "Should I create a new module?" — he decides.
 

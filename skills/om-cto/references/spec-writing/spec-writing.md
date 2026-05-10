@@ -1,7 +1,3 @@
----
-name: om-spec-writing
-description: Guide for creating high-quality, architecturally compliant specifications for Open Mercato. Use when starting a new SPEC or reviewing specs against "Martin Fowler" staff-engineer standards.
----
 
 # Spec Writing & Review
 

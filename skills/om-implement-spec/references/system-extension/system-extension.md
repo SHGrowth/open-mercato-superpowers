@@ -1,7 +1,3 @@
----
-name: om-system-extension
-description: Extend core modules via UMES — add columns/fields/filters, intercept APIs, replace components, inject menu items, react to events, validate mutations. Also covers module ejection as a last resort. Triggers — "extend", "add column to", "intercept", "customize", "override component", "eject".
----
 
 # System Extension — UMES Wizard
 

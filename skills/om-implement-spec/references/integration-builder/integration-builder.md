@@ -1,7 +1,3 @@
----
-name: om-integration-builder
-description: Build integration provider packages for the Open Mercato Integration Marketplace — payment gateways, shipping carriers, data-sync connectors, communication channels, storage, webhooks. Scaffolds the npm package with adapter, credentials, widgets, webhook handlers, health checks, i18n, tests.
----
 
 # Integration Builder
 

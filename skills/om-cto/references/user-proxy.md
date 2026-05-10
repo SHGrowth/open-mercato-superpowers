@@ -1,7 +1,3 @@
----
-name: om-user-proxy
-description: Pipeline-level proxy that answers routine questions on the user's behalf. Invoked by other skills before presenting questions or decisions. Resolves from app spec, lessons, and context. Escalates only what needs human judgment.
----
 
 # User Proxy
 

@@ -1,11 +1,23 @@
 ---
 name: om-implement-spec
-description: Implement a spec (or selected phases) using coordinated subagents — unit tests, integration tests, docs, and code-review compliance per phase. Tracks progress by updating the spec. Triggers — "implement spec", "implement phases", "build from spec", "code the spec".
+description: Implement OM specs end-to-end (or by phase) — coordinated subagents, code-review + tests gated per phase. Loads references for module scaffolding, data-model design, system extension (UMES), integration builders. Triggers — "implement spec", "create module", "design entity", "extend module", "build integration".
 ---
 
 # Implement Spec Skill
 
 Implements a specification (or selected phases) end-to-end using a team of coordinated subagents. Every code change MUST pass the code-review checklist before the phase is considered done.
+
+## Task Router (engineering specialty references)
+
+Load only the reference you need. Never load all at once.
+
+| Task / trigger | Load |
+|------|------|
+| Creating a new module ("create module", "new module", "scaffold module") | `references/module-scaffold/module-scaffold.md` |
+| Designing entities or migrations ("design entity", "data model", "schema", "migration") | `references/data-model-design/data-model-design.md` |
+| Extending an existing module via UMES ("extend", "add column to", "intercept", "override component") | `references/system-extension/system-extension.md` |
+| Module ejection (last-resort fork) ("eject", "should I eject", "fork module") | `references/system-extension/eject.md` |
+| Building an integration provider package ("build integration", "add provider", "new connector") | `references/integration-builder/integration-builder.md` |
 
 ## Pre-Flight
 
@@ -172,24 +184,11 @@ After all targeted phases are complete:
 1. **Build check**: `yarn build:packages` — must pass
 2. **Lint check**: `yarn lint` — must pass
 3. **Unit test check**: `yarn test` — must pass
-4. **Integration test check** (with orchestration-aware routing — see below): must pass
+4. **Integration test check**: `npx playwright test --config .ai/qa/tests/playwright.config.ts` — must pass
 5. **Module prepare**: `yarn generate` — if any convention files changed
 6. **Migration check**: `yarn db:generate` — if any entities changed (verify generated migration is scoped correctly)
 
 Report results to the user. If any check fails, fix and re-verify.
-
-#### Integration test routing (v1.12.0+)
-
-Step 4 (integration tests) has two paths depending on whether the project is opted into the `om-orchestrate` fleet:
-
-**Singleton-detect**:
-- Check if `.ai/orchestration.yml` exists AND a sentinel file (`/tmp/om-agent-e2e.pid`) names a live process AND that process has posted an e2e-related comment within the last `(e2e_poll_cadence_seconds * 4)` seconds.
-- If all three are true → **enqueue** path. Stage commits, push branch, transition the linked issue from `status:coding` → `status:needs-e2e`, post the lean handoff comment, exit. The e2e singleton picks up.
-- If any are false → **inline** path. Run the integration tests in-session (current pre-v1.12.0 behavior). Log a one-line note: *"E2E singleton not detected; running inline. Run `/om-orchestrate init` to enable orchestration mode."*
-
-This is **additive**: nothing breaks for users who haven't opted into orchestration. The inline path is identical to v1.11.6 behavior. Users who DO run `/om-orchestrate init` and spawn the fleet get the singleton's benefits without modifying this skill.
-
-The detection is intentionally lenient — three positive signals required. False positives (skipping integration tests when no singleton exists) are unacceptable; false negatives (running inline when a singleton is alive) are recoverable (the singleton sees the issue is still in `status:coding` and waits; the user can re-run after observing the inline result).
 
 ### Step 9 — Post-PR Review Gate (mandatory when a PR was opened)
 

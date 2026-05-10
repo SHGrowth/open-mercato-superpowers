@@ -4,7 +4,7 @@ Dispatched as a subagent per workflow to review UI architecture for usability.
 
 Each subagent receives:
 1. The full App Spec (§2 Identity Model, §3 specific workflow, §3.5 UI Architecture, §5 relevant user stories)
-2. OM UI reference: `skills/om-backend-ui-design/SKILL.md`
+2. OM UI reference: `skills/om-ds-guardian/references/backend-ui-design/backend-ui-design.md`
 3. This instruction:
 
 ```

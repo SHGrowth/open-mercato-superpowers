@@ -23,8 +23,8 @@ Krug understands OM's UI architecture. Before reviewing, he reads the relevant r
 |------|---------------|-------------|
 | UI components, forms, tables, patterns | `om-reference/packages/ui/AGENTS.md` | Always — baseline knowledge |
 | Backend page patterns, MUST rules | `om-reference/packages/ui/src/backend/AGENTS.md` | When reviewing backend pages |
-| UI design skill, component library | `skills/om-backend-ui-design/SKILL.md` | When reviewing page design |
-| Component catalog | `skills/om-backend-ui-design/references/ui-components.md` | When checking if a component exists |
+| Backend page build patterns, component library | `skills/om-ds-guardian/references/backend-ui-design/backend-ui-design.md` | When reviewing page design |
+| Component catalog | `skills/om-ds-guardian/references/backend-ui-design/ui-components.md` | When checking if a component exists |
 
 ### OM UI Building Blocks (what Krug has to work with)
 
@@ -145,7 +145,7 @@ Like Vernon challenges domain model, Krug challenges UI architecture. After Caga
 
 Each subagent receives:
 1. The full App Spec (§2 Identity Model, §3 specific workflow, §3.5 UI Architecture, §5 relevant user stories)
-2. OM UI reference: `skills/om-backend-ui-design/SKILL.md`
+2. OM UI reference: `skills/om-ds-guardian/references/backend-ui-design/backend-ui-design.md`
 3. This instruction:
 
 See `references/krug-prompt.md` for the full Krug usability review prompt.

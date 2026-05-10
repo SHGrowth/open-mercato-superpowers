@@ -160,12 +160,14 @@ CORE_SKILL_PAIRS=(
   # Base skills that Piotr dispatches via dispatch context
   "om-implement-spec:implement-spec"
   "om-code-review:code-review"
-  "om-spec-writing:spec-writing"
-  # om-pre-implement-spec is demoted — see DEMOTED_SKILL_PAIRS below
-  # Overlap skills synced as-is
-  "om-backend-ui-design:backend-ui-design"
-  "om-integration-builder:integration-builder"
   "om-integration-tests:integration-tests"
+  # FROZEN SNAPSHOTS as of v1.16.0 — moved out of auto-sync and demoted to
+  # references under parent skills. Manual cherry-pick required for upstream
+  # changes. See CHANGELOG 1.16.0 "Frozen-snapshot demotion" section.
+  #   om-spec-writing      → skills/om-cto/references/spec-writing/
+  #   om-backend-ui-design → skills/om-ds-guardian/references/backend-ui-design/
+  #   om-integration-builder → skills/om-implement-spec/references/integration-builder/
+  # om-pre-implement-spec was demoted in v1.8.0 — see DEMOTED_SKILL_PAIRS below.
   # Auto-* skills (execution engine)
   # NOTE: All three auto-* skills are now CUSTOM in this repo and are NOT
   # synced from upstream. Forking timeline:
@@ -201,11 +203,16 @@ echo ""
 
 # Skills that only exist in create-mercato-app, not in .ai/skills/
 APP_SKILL_PAIRS=(
-  "om-data-model-design:data-model-design"
-  # om-eject-and-customize is demoted — see DEMOTED_SKILL_PAIRS below
-  "om-module-scaffold:module-scaffold"
-  "om-system-extension:system-extension"
   "om-troubleshooter:troubleshooter"
+  # FROZEN SNAPSHOTS as of v1.16.0 — moved out of auto-sync and demoted to
+  # references under parent skills. Manual cherry-pick required for upstream
+  # changes. See CHANGELOG 1.16.0.
+  #   om-data-model-design → skills/om-implement-spec/references/data-model-design/
+  #   om-module-scaffold   → skills/om-implement-spec/references/module-scaffold/
+  #   om-system-extension  → skills/om-implement-spec/references/system-extension/
+  # om-eject-and-customize was demoted in v1.8.0 (its content now lives at
+  # skills/om-implement-spec/references/system-extension/eject.md after the
+  # v1.16.0 reshuffle).
 )
 
 for pair in "${APP_SKILL_PAIRS[@]}"; do
@@ -234,7 +241,9 @@ echo ""
 
 DEMOTED_SKILL_PAIRS=(
   "om-cto:pre-impl-analysis.md:pre-implement-spec:core"
-  "om-system-extension:eject.md:eject-and-customize:app"
+  # eject.md lives under om-implement-spec/references/system-extension/ as of v1.16.0
+  # (om-system-extension was itself demoted into that folder).
+  "om-implement-spec:system-extension/eject.md:eject-and-customize:app"
 )
 
 for pair in "${DEMOTED_SKILL_PAIRS[@]}"; do
