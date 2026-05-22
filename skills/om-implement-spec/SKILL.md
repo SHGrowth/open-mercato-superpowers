@@ -1,32 +1,19 @@
 ---
 name: om-implement-spec
-description: Implement OM specs end-to-end (or by phase) — coordinated subagents, code-review + tests gated per phase. Loads references for module scaffolding, data-model design, system extension (UMES), integration builders. Triggers — "implement spec", "create module", "design entity", "extend module", "build integration".
+description: Implement a specification (or specific phases) using coordinated subagents with unit tests, integration tests, docs, and code-review compliance. Tracks progress by updating the spec. Triggers on "implement spec", "implement phases", "build from spec", "code the spec".
 ---
 
 # Implement Spec Skill
 
 Implements a specification (or selected phases) end-to-end using a team of coordinated subagents. Every code change MUST pass the code-review checklist before the phase is considered done.
 
-## Task Router (engineering specialty references)
-
-Load only the reference you need. Never load all at once.
-
-| Task / trigger | Load |
-|------|------|
-| Creating a new module ("create module", "new module", "scaffold module") | `references/module-scaffold/module-scaffold.md` |
-| Designing entities or migrations ("design entity", "data model", "schema", "migration") | `references/data-model-design/data-model-design.md` |
-| Extending an existing module via UMES ("extend", "add column to", "intercept", "override component") | `references/system-extension/system-extension.md` |
-| Module ejection (last-resort fork) ("eject", "should I eject", "fork module") | `references/system-extension/eject.md` |
-| Building an integration provider package ("build integration", "add provider", "new connector") | `references/integration-builder/integration-builder.md` |
-
 ## Pre-Flight
 
 1. **Identify the spec**: Locate the target spec file(s) in `.ai/specs/` or `.ai/specs/enterprise/`.
 2. **Load context**: Read spec fully. Read all AGENTS.md files listed in the Task Router that match the affected modules/packages.
 3. **Load code-review checklist**: Read `skills/om-code-review/references/review-checklist.md` — this is the acceptance gate for every phase.
-4. **Load DS references (if the spec touches UI)**: Read `om-ds-guardian/references/component-guide.md` (which primitive to pick), `page-templates.md` (canonical List/Create/Detail templates), and `token-mapping.md` (semantic tokens). All emitted UI code MUST follow these — `om-auto-review-pr` invokes `om-ds-guardian REVIEW` on every PR and will flag raw HTML controls, hardcoded colors, arbitrary text sizes, etc.
-5. **Load lessons**: Read `.ai/lessons.md` for known pitfalls.
-6. **Scope phases**: If the user specifies phases (e.g. "phases e-h"), filter to only those. Otherwise implement all phases sequentially.
+4. **Load lessons**: Read `.ai/lessons.md` for known pitfalls.
+5. **Scope phases**: If the user specifies phases (e.g. "phases e-h"), filter to only those. Otherwise implement all phases sequentially.
 
 ## Extension Mode Decision (Mandatory First Step)
 
@@ -85,15 +72,20 @@ For every piece of code, enforce these code-review rules inline:
 | Area | Rule |
 |------|------|
 | Types | No `any` — use zod + `z.infer` |
-| API routes | Export `openApi` and `metadata` with auth guards |
-| Entities | Standard columns, snake_case, UUID PKs |
+| API routes | Export `openApi` and per-method `metadata` with `requireAuth` / `requireFeatures` (no top-level `export const requireAuth`) |
+| **CRUD APIs** | **Use `makeCrudRoute({ entity, entityId, operations, schema, indexer: { entityType } })` from `@open-mercato/shared/lib/crud/factory`. Custom (non-`makeCrudRoute`) write routes MUST call `validateCrudMutationGuard` before the mutation and `runCrudMutationGuardAfterSuccess` after success. See `packages/core/AGENTS.md` → API Routes / CRUD Factory.** |
+| Entities | Standard columns, snake_case, UUID PKs, indexed `organization_id` + `tenant_id` |
 | Security | `findWithDecryption`, tenant scoping, zod validation |
-| UI | `CrudForm`/`DataTable`, `apiCall`, `flash()`, `LoadingMessage`/`ErrorMessage`; DS primitives only (no raw `<input>`/`<select>`/`<textarea>`); semantic tokens for colors (no `text-red-*`/`bg-green-*`); typography scale (no `text-[Npx]`) — see `om-ds-guardian/references/component-guide.md` + `token-mapping.md` |
+| **Encryption maps** | **For every PII / GDPR-relevant column the phase touches, declare in `<module>/encryption.ts` exporting `defaultEncryptionMaps` (type from `@open-mercato/shared/modules/encryption`). Reads via `findWithDecryption` / `findOneWithDecryption` (5-arg `(em, entity, where, options?, scope?)`). Equality-lookup columns declare a sibling `hashField`. NEVER hand-rolled AES/KMS, `crypto.subtle`, or "encrypt later" stubs. See `packages/core/AGENTS.md` → Encryption + `apps/docs/docs/user-guide/encryption.mdx`.** |
+| UI | `CrudForm`/`DataTable` (with stable `entityId` + `extensionTableId`), `apiCall` (never raw `fetch`), `flash()`, `LoadingMessage`/`ErrorMessage` |
+| **Frontend performance boundaries** | **Implement the spec's Frontend Architecture Contract. Generated Next.js `page.tsx`/`layout.tsx` roots default to server components. Every `"use client"` needs a ledger justification. Split large client blobs into local leaves, lazy-scope provider/bootstrap registries, dynamically/local-import heavy browser libraries, and capture hydration/interactivity + performance evidence before merge. Run `yarn check:client-boundaries` for generated frontend/app shell changes.** |
+| **Design System** | **Semantic status tokens (no `text-red-*` / `bg-green-*`); Tailwind text scale (no `text-[13px]` / `text-[11px]`); shared primitives `StatusBadge` / `Alert` / `FormField` / `SectionHeader` / `CollapsibleSection` / `LoadingMessage` / `Spinner` / `DataLoader` / `EmptyState`; lucide-react icons in PAGE BODY (never inline `<svg>`); `aria-label` on every icon-only button; Boy Scout rule on touched lines. See root `AGENTS.md` → Design System Rules + `.ai/ds-rules.md` + `.ai/ui-components.md`.** |
+| **Cache** | **Resolve via DI (`container.resolve('cache')`); tag with `tenant:<id>` / `org:<id>`; declare invalidation per write path. NEVER `new Redis(...)` or raw SQLite. See `packages/cache/AGENTS.md`.** |
 | Commands | `registerCommand`, undoable, `extractUndoPayload()` |
-| Events | `createModuleEvents()` with `as const`, subscribers export `metadata` |
+| Events | `createModuleEvents()` with `as const`; subscribers export `metadata`; cross-module side effects via subscribers, never direct imports |
 | i18n | `useT()` client, `resolveTranslations()` server, no hardcoded strings |
 | Imports | Package-level `@open-mercato/<pkg>/...` for cross-module |
-| Mutations | `useGuardedMutation` when not using CrudForm |
+| Mutations | `useGuardedMutation` when not using CrudForm; pass `retryLastMutation` in injection context |
 | Keyboard | `Cmd/Ctrl+Enter` submit, `Escape` cancel on dialogs |
 | Naming | Modules plural snake_case, events `module.entity.past_tense`, features `module.action` |
 
@@ -141,6 +133,7 @@ Before marking a phase complete, run a self-review against the full checklist:
 10. **Module Setup** (section 10) — if applicable
 11. **Custom Fields** (section 11) — if applicable
 12. **UI & Backend Pages** (section 12) — if applicable
+    - For generated/frontend pages, confirm the Frontend Architecture Contract was implemented: page roots stay server-first, every `"use client"` is justified, no large client-side blob was introduced, provider/bootstrap registries are scoped, hydration/interactivity tests cover changed routes, performance evidence is attached, and `yarn check:client-boundaries` was run or explicitly waived.
 13. **i18n** (section 13)
 14. **Naming** (section 14)
 15. **Code Quality** (section 15)
@@ -184,28 +177,11 @@ After all targeted phases are complete:
 1. **Build check**: `yarn build:packages` — must pass
 2. **Lint check**: `yarn lint` — must pass
 3. **Unit test check**: `yarn test` — must pass
-4. **Integration test check**: `npx playwright test --config .ai/qa/tests/playwright.config.ts` — must pass
+4. **Integration test check**: run any new integration tests — must pass
 5. **Module prepare**: `yarn generate` — if any convention files changed
 6. **Migration check**: `yarn db:generate` — if any entities changed (verify generated migration is scoped correctly)
 
 Report results to the user. If any check fails, fix and re-verify.
-
-### Step 9 — Post-PR Review Gate (mandatory when a PR was opened)
-
-Step 6's self-review is the implementer reading the checklist *to itself*. It does not substitute for an actual review pass on the resulting PR. If this implementation produced a PR (typical when dispatched via `auto-create-pr` or when the run plan opens one in its final commit), subject the PR to a real second pass before reporting complete.
-
-`om-implement-spec` does not hold an `in-progress` lock on the PR at this point, so `auto-review-pr`'s claim check will see "not in progress, current user is the author/assignee" and claim it fresh by applying the `in-progress` label. That is expected — `auto-review-pr` owns releasing the label when it finishes, per its own step 11.
-
-Invoke `skills/om-auto-review-pr/SKILL.md` against `{prNumber}` in autofix mode:
-
-1. Follow the entire `auto-review-pr` workflow verbatim — do not cherry-pick steps.
-2. For UI changes, the autofix loop chains `om-ds-guardian REVIEW` automatically; do not skip the DS pass on portal/backend page work.
-3. If autofix opens follow-up commits, push them on the same feature branch (never rewrite history).
-4. Loop until `auto-review-pr` returns a clean verdict (no actionable blockers) or the remaining findings are non-actionable (out-of-scope, false positive) and explicitly documented in the spec's `## Implementation Status` notes column.
-
-If `auto-review-pr` cannot run (e.g., required checks not yet green, missing context), escalate: leave the spec's status as `in_progress`, stop here, and report the blocker to the user so they can decide whether to resume.
-
-**Do not report a spec implementation complete until this step has passed.** This is the gate that catches what self-review missed: cross-file architectural concerns, security checklist items, DS-guardian findings on UI, BC concerns on contract surfaces. Two production incidents (PRM Spec #4 PR #4, PRM Spec #5 PR #5) shipped without this gate; both required cleanup loops surfaced only when the user manually asked for review. Codified 2026-05-07 as v1.11.6 — see `docs/specs/2026-05-07-implement-spec-post-pr-gate.md`.
 
 ## Subagent Strategy
 
@@ -244,5 +220,3 @@ When implementing component replacement features (as in SPEC-041h pattern):
 - MUST follow backward compatibility rules — no breaking changes without deprecation protocol
 - MUST keep subagents focused — one task per subagent, clear boundaries
 - MUST report blockers to the user immediately rather than working around them silently
-- MUST NOT call `ScheduleWakeup` between phases or iterations. Implementation chains in this conversation; if the user asks for unattended Ralph-style execution, hand off to `/loop 5m /auto-continue-pr <PR#>` (harness cron mode) instead. `ScheduleWakeup` with delay >270 s while a run-plan checklist has unchecked items is an anti-pattern — it inserts a 20–30 min do-nothing gap per commit. See `skills/om-cto/references/impl-orchestrator.md` § Autonomous loop policy.
-- MUST NOT report a spec implementation complete until `om-auto-review-pr` has returned a clean verdict on the resulting PR (Step 9). Step 6's self-review is the implementer reading the checklist to itself and does not substitute for a real review pass. Two production incidents (PRM PR #4 + PR #5) shipped without this gate; both required user-initiated cleanup loops. See Step 9 and `docs/specs/2026-05-07-implement-spec-post-pr-gate.md`.
