@@ -1,31 +1,11 @@
 ---
 name: om-troubleshooter
-description: Diagnose and fix common issues in Open Mercato standalone apps — errors, modules not loading, widgets missing, failed migrations, build errors. Triggers — "error", "not working", "broken", "fix", "debug", "404", "500", "module not found". When the trace points into `node_modules/@open-mercato/*`, STOP and route to om-cto upstream-bug-triage before proposing any fix or PR.
+description: Diagnose and fix common issues in Open Mercato standalone apps. Use when encountering errors, unexpected behavior, modules not loading, widgets not appearing, migrations failing, build errors, or any "it doesn't work" situation. Triggers on "error", "not working", "broken", "fix", "debug", "why isn't", "can't", "fails", "crash", "missing", "404", "500", "module not found", "widget not showing".
 ---
 
 # Troubleshooter
 
 Diagnose and fix common issues in Open Mercato standalone apps. Follow the systematic approach: identify symptoms, check common causes, verify fixes.
-
-## STOP — Upstream bug routing (read first)
-
-Before reading anything else in this skill, check whether the symptom points at OM core. If yes, route to `om-cto/references/upstream-bug-triage.md` and do NOT propose a downstream fix or "draft an upstream PR" inline.
-
-**Trigger conditions — any of these means STOP and route:**
-
-- A stack trace, error log, or breakpoint lands inside `node_modules/@open-mercato/*` (or a checked-out `@open-mercato/*` package).
-- You found yourself reading source from `node_modules/@open-mercato/*` to diagnose. If the diagnostic path went through OM core code, the bug class is "upstream until proven otherwise."
-- A core function returns wrong data, a contract doesn't match its types/JSDoc, or a widget injection / enricher / interceptor / event subscriber doesn't fire when the wiring looks correct.
-- You're about to suggest changes inside `node_modules/@open-mercato/*` — even mentally framed as "would need to".
-- You're about to offer the user a choice that includes "draft an upstream PR" or "patch upstream".
-
-**What "route" means concretely:**
-
-1. Stop the diagnosis hand-off. Do NOT enumerate fix options to the user yet.
-2. Invoke `om-cto` and load `references/upstream-bug-triage.md`. Provide the six required inputs (symptom / source location / expected vs actual / repro / proposed workaround sketch / calling agent + task).
-3. Follow the verdict om-cto returns. If the verdict is `confirmed-new-bug`, the upstream patch handoff is a `Write` to `<om_core_path>/agents/tasks/<YYYY-MM-DD>-<slug>/README.md` — NOT a PR opened from the consumer-app session, and NOT an entry appended to `<om_core_path>/ISSUE_LOG.md`. The drain agent picks up by directory listing, not by log scanning.
-
-Why this exists: in past sessions, the troubleshooter found upstream bugs (e.g., `raiseCrudError` not handling nested `error.message` in `@open-mercato/ui`), offered "draft an upstream PR" as a third option alongside local fixes, and on user redirect appended to `ISSUE_LOG.md` instead of using `agents/tasks/<DATE>-<slug>/README.md`. Both bypassed the triage protocol. This block is here so it doesn't happen again.
 
 ## Table of Contents
 
@@ -148,17 +128,21 @@ yarn typecheck
 
 1. **Did you create a migration after adding/changing the entity?**
    ```bash
-   yarn db:generate     # Creates migration file
+   yarn db:generate     # Probes/creates migration file
    ```
-   Fix: Run `yarn db:generate` to create the migration.
+   Fix: Run `yarn db:generate` to inspect the required migration, then keep only the scoped SQL for your module and update `src/modules/<module_id>/migrations/.snapshot-open-mercato.json`.
 
-2. **Did you apply the migration?**
+2. **Is the entity declared in the right file with the right imports?**
+   Entity classes belong in `src/modules/<module_id>/data/entities.ts` and decorators must come from `@mikro-orm/decorators/legacy`.
+   Fix: move stale `entities/<Entity>.ts` patterns into `data/entities.ts` and fix the imports before regenerating the migration.
+
+3. **Did you apply the migration?**
    ```bash
    yarn db:migrate      # Applies pending migrations
    ```
    Fix: Run `yarn db:migrate`.
 
-3. **Is the migration file correct?**
+4. **Is the migration file correct?**
    Check `src/modules/<module_id>/migrations/` for the latest migration.
    Verify it has the expected columns and types.
    Fix: If wrong, delete the migration file, fix the entity, and regenerate.
@@ -178,16 +162,21 @@ yarn typecheck
    Never edit `node_modules/@open-mercato/*`.
    Fix: Revert changes to node_modules. Use UMES extensions instead, or eject the module.
 
+3. **Is a module snapshot stale?**
+   Check whether the generated SQL recreates a table or column that already has a committed migration.
+   Fix: update that module's `migrations/.snapshot-open-mercato.json` to include the already-migrated schema, then re-run `yarn db:generate` and expect `no changes`.
+
 ### Entity changes not reflected
 
 **Symptoms**: Changed entity file but API still returns old schema
 
 **Checklist**:
 
-1. Run `yarn generate` — entity discovery is cached
-2. Run `yarn db:generate` — schema needs a migration
-3. Run `yarn db:migrate` — migration needs to be applied
-4. Restart `yarn dev` — server caches entity metadata
+1. Verify the entity lives in `src/modules/<module_id>/data/entities.ts` and imports decorators from `@mikro-orm/decorators/legacy`
+2. Run `yarn generate` — entity discovery is cached
+3. Run `yarn db:generate` — schema needs a migration
+4. Run `yarn db:migrate` — migration needs to be applied
+5. Restart `yarn dev` — server caches entity metadata
 
 ---
 
@@ -459,5 +448,4 @@ yarn dev               # 5. Restart dev server
 - **NEVER** edit files in `.mercato/generated/` or `node_modules/`
 - **NEVER** assume the issue — verify with actual error output
 - Fix the root cause, not the symptom — temporary workarounds become permanent bugs
-- **NEVER silently patch around suspected OM upstream bugs.** See the "STOP — Upstream bug routing" block at the top of this skill for the full protocol. Short version: route to `om-cto/references/upstream-bug-triage.md`; the upstream patch handoff is a `Write` to `<om_core_path>/agents/tasks/<YYYY-MM-DD>-<slug>/README.md`, NOT an entry in `ISSUE_LOG.md` and NOT a PR from the consumer-app session.
 - When suggesting a fix, include the exact command or code change needed
