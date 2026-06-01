@@ -2,6 +2,33 @@
 
 `@open-mercato/cli` provides CLI tooling, module generators, and database migration commands.
 
+## Always
+
+1. Keep generator output deterministic and derived from module source files.
+2. Run `yarn generate` after changing generator discovery or output.
+3. Keep `.snapshot-open-mercato.json` in sync with intended module entity changes.
+4. Keep standalone app generator contracts aligned across `packages/create-app`, template package scripts, and CLI testing paths.
+
+## Ask First
+
+- Ask before changing generated file locations, auto-discovery conventions, migration ordering, or CLI command contracts.
+- Ask before applying migrations locally with `yarn db:migrate`; PRs normally include migration files and snapshots, not local DB state.
+
+## Never
+
+- Never commit unrelated generated migrations caused by stale snapshots in other modules.
+- Never make generator post-steps fail generation when optional cache tooling is unavailable.
+- Never use runtime imports in `generators.ts` plugin files.
+
+## Validation Commands
+
+```bash
+yarn generate
+yarn db:generate
+yarn workspace @open-mercato/cli test
+yarn workspace @open-mercato/cli build
+```
+
 ## Structure
 
 ```
@@ -40,6 +67,13 @@ yarn generate              # Run all generators
 
 `yarn generate` now performs a best-effort post-step structural cache purge by invoking `yarn mercato configs cache structural --all-tenants` when the generated app exposes the `configs` cache CLI. This post-step must never break generation; unavailable cache tooling must be treated as a skip.
 
+The structural cache purge does two things:
+
+1. Deletes Redis cache keys matching `nav:*` so navigation/sidebar caches are rebuilt next render.
+2. Touches every `*.generated.ts` and `*.generated.checksum` file in the current app's `.mercato/generated/` directory by rewriting them with identical bytes. This advances mtime without changing content, which forces Turbopack's filesystem watcher to invalidate the import graph and recompile leaf files that imported a barrel. Without this, Turbopack can keep serving a cached compile error against a since-fixed module file until the dev server is restarted.
+
+The dev escape hatch is `yarn dev:reset`, which clears the configured Next dev cache (`.mercato/next/dev`) plus legacy `.next` cache directories for the rare case where Turbopack's internal cache stays stuck after a structural purge.
+
 ## Database Migrations
 
 Module-scoped migrations using MikroORM:
@@ -49,7 +83,11 @@ yarn db:generate   # Generate migrations for all modules (writes to src/modules/
 yarn db:migrate    # Apply all pending migrations (ordered, directory first)
 ```
 
-**Never hand-write migration files.** Update ORM entities in `data/entities.ts`, then run `yarn db:generate` to emit SQL and keep snapshots in sync.
+Default workflow: update ORM entities in `data/entities.ts`, then run `yarn db:generate` to emit SQL and keep `.snapshot-open-mercato.json` in sync.
+
+Coding-agent exception: if `yarn db:generate` emits unrelated migrations because another module's snapshot is stale, do not commit the noise. Delete unrelated generated files, keep or write only the SQL for the intended entity change, and update the affected module's `migrations/.snapshot-open-mercato.json` to the post-change schema. The snapshot update is mandatory; without it, standalone apps will regenerate already-committed migrations.
+
+Do not run `yarn db:migrate` as part of generation unless the user explicitly asks to apply migrations. A PR should normally include the migration file plus snapshot, not depend on local DB state.
 
 ## Standalone App Considerations
 

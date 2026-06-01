@@ -2,13 +2,32 @@
 
 Use the catalog module for products, categories, pricing, variants, and offers.
 
-## MUST Rules
+## Always
 
-1. **MUST NOT reimplement pricing logic** — use `selectBestPrice` and the resolver pipeline from `lib/pricing.ts`
+1. **MUST use `selectBestPrice` and the resolver pipeline from `lib/pricing.ts`** for pricing logic.
 2. **MUST use the DI token `catalogPricingService`** when resolving prices — ensures overrides take effect
 3. **MUST register custom pricing resolvers** with explicit priority (`registerCatalogPricingResolver(resolver, { priority })`)
 4. **MUST declare widget injections** in `widgets/injection/` and map via `injection-table.ts`
 5. **MUST follow the standard event pattern** in `events.ts` for all CRUD and lifecycle events
+
+## Ask First
+
+- Ask before changing price-layer precedence, resolver priority semantics, event IDs, or released widget spot IDs.
+- Ask before deleting or changing option schemas that existing variants may reference.
+
+## Never
+
+- Never reimplement catalog pricing inline.
+- Never delete option schemas while variants reference them.
+- Never bypass `prepareMutation` for catalog AI tools that mutate products, prices, or media.
+
+## Validation Commands
+
+```bash
+yarn db:generate
+yarn generate
+yarn workspace @open-mercato/core build
+```
 
 ## When You Need Pricing Logic
 
@@ -64,3 +83,14 @@ The default pipeline emits `catalog.pricing.resolve.before|after` events.
 Key events follow the standard pattern in `events.ts`:
 - `catalog.product.created/updated/deleted` — CRUD events
 - `catalog.pricing.resolve.before/after` — pricing lifecycle (excluded from workflow triggers)
+
+## AI Agents in This Module
+
+Two typed AI agents ship from `ai-agents.ts`. See `/framework/ai-assistant/agents` for the full guide. Copy `packages/core/src/modules/customers/ai-agents.ts` + `ai-tools.ts` first; use this module's agents as the catalog-specific reference.
+
+| Agent ID | Mode | Policy | Purpose |
+|----------|------|--------|---------|
+| `catalog.catalog_assistant` | chat | `read-only` | General operator explorer for products, categories, variants, prices, offers, product media, tags, option schemas, and unit conversions via the base catalog tool pack + general-purpose packs. |
+| `catalog.merchandising_assistant` | chat | `read-only` (mutation-capable via per-tenant override unlocking `catalog.update_product`, `catalog.bulk_update_products`, `catalog.apply_attribute_extraction`, `catalog.update_product_media_descriptions`) | D18 demo agent: proposes descriptions, attribute extractions, title variants, and price adjustments for the current selection on the products list page. |
+
+The merchandising assistant is the Phase 2 D18 demo. `<AiChat agent="catalog.merchandising_assistant" />` is injected via `MerchandisingAssistantSheet.tsx` on `/backend/catalog/catalog/products` (see `packages/core/src/modules/catalog/backend/catalog/products/page.tsx`). Mutation-capable authoring tools route through `prepareMutation` + the approval-card contract; confirmed batches refresh the DataTable via `catalog.product.updated` events on the DOM event bridge.
